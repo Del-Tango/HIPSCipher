@@ -1,0 +1,12 @@
+{
+    "config_file": "./conf/hips_cipher.conf.json",
+    "current_dir": ".",
+    "report_file": "hc_report.dump",
+    "running_mode": "encrypt",
+    "data_source": "file",
+    "cleanup": [],
+    "full_cleanup": [
+    ],
+    "report": true,
+    "silent": false
+}
