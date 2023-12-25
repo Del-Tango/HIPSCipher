@@ -7,13 +7,13 @@
 import optparse
 import os
 import json
-import string
-import numpy as np
+# import string
+# import numpy as np
 import pysnooper
 
-from PIL import Image
-from stegano import lsb
-
+from subprocess import Popen, PIPE
+#from PIL import Image
+#from stegano import lsb
 
 SCRIPT_NAME = 'HIPSCipher'
 VERSION = '1.0'
@@ -22,13 +22,16 @@ CURRENT_DIR = os.getcwd()
 CONFIG = {
     'config_file': '',
     'current_dir': CURRENT_DIR,
+    'tmp_file': '%s/hc_tmp.txt' % CURRENT_DIR,
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
     'cleartext_file': '%s/hc_cleartext.txt' % CURRENT_DIR,
     'running_mode': 'encrypt',                                                  # <decrypt|encrypt>
-    'data_source': 'terminal',                                                      # <file|terminal>
-    'cleanup': [],                                                              # CONFIG keys containing file paths
+    'data_source': 'terminal',                                                  # <file|terminal>
+    'keycode': 'HIPS',                                                          # Encryption password
+    'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
+        'tmp_file', 'cleartext_file'
     ],
     'in_place': True,
     'report': True,
@@ -125,9 +128,34 @@ def fetch_replay_confirmation_from_user(prompt='Replay'):
     print()
     return True if answer in ('y', 'yes', 'yeah') else False
 
+def fetch_keycode_from_user(prompt='KeyCode'):
+    global CONFIG
+    stdout_msg(
+        'Specify encryption keycode sequence or (.back)...', info=True,
+        silence=CONFIG.get('silent')
+    )
+    if CONFIG.get('keycode'):
+        prompt = prompt + '[' + CONFIG['keycode'] + ']> '
+        stdout_msg(
+            'Leave blank to keep current '\
+            '(%s)' % CONFIG['keycode'], info=True, silence=CONFIG.get('silent')
+        )
+    while True:
+        code = input(prompt)
+        if not code:
+            if not CONFIG.get('keycode'):
+                continue
+            code = CONFIG.get('keycode')
+        if code == '.back':
+            return
+        CONFIG.update({'keycode': code})
+        break
+    print()
+    return code
+
 # CHECKERS
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def check_preconditions(**conf):
     errors = []
     file_paths = ['cleartext_file', 'image_file']
@@ -153,6 +181,13 @@ def check_preconditions(**conf):
     return False if errors else True
 
 # GENERAL
+
+def shell_cmd(command, user=None):
+    if user:
+        command = "su %s -c \'%s\'" % (str(user), str(command))
+    process = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+    output, errors = process.communicate()
+    return  str(output).rstrip('\n'), str(errors).rstrip('\n'), process.returncode
 
 def message_to_bin(message):
     return ''.join(format(ord(char), '08b') for char in message)
@@ -230,7 +265,7 @@ def stdout_msg(message, silence=False, red=False, info=False, warn=False,
 # ACTIONS
 
 #@pysnooper.snoop()
-def encrypt(image_path, data, **context) -> list:
+def encrypt(*data, **context) -> str:
     '''
     [ INPUT  ]:
     [ RETURN ]:
@@ -238,27 +273,30 @@ def encrypt(image_path, data, **context) -> list:
     global action_result
     failures = 0
     if context.get('in_line'):
-        out_img_path = image_path
+        out_img_path = context['image_file']
     else:
-        img_dir = os.path.dirname(image_path)
-        img_name = os.path.basename(image_path)
+        img_dir = os.path.dirname(context['image_file'])
+        img_name = os.path.basename(context['image_file'])
         out_img_path = img_dir + '/hips.' + img_name
-    try:
-        image = Image.open(image_path)
-        binary_message, data_index, img_array = message_to_bin(data), 0, np.array(image)
-        for i in range(img_array.shape[0]):
-            for j in range(img_array.shape[1]):
-                for color_channel in range(3):  # RGB channels
-                    if data_index < len(binary_message):
-                        img_array[i, j, color_channel] = img_array[i, j, color_channel] & ~1 | int(binary_message[data_index])
-                        data_index += 1
-        new_image = Image.fromarray(img_array)
-        new_image.save(out_img_path)
-    except Exception as e:
+    # If data is not a file that exists, it will be written to tmp_file
+    if not os.path.exists(data[0]):
+        with open(context['tmp_file'], 'w') as fl:
+            fl.write(';'.join(data))
+        secret_file = context['tmp_file']
+    else:
+        secret_file = data[0]
+    if os.path.exists(out_img_path):
+        os.remove(out_img_path)
+    stdout, stderr, exit = shell_cmd(
+        'steghide embed -ef %s -cf %s -sf %s -p %s' % (
+            secret_file, context['image_file'], out_img_path, context['keycode']
+        )
+    )
+    if exit != 0:
+        action_result['errors'] += [stdout, stderr]
         failures += 1
-        action_result['errors'].append(str(e))
     action_result.update({
-        'input': [image_path],
+        'input': [context['image_file']],
         'output': [out_img_path, data],
         'msg': 'OK: Encryption successful' if os.path.exists(out_img_path) and \
             not failures else 'NOK: Encryption failures detected (%s)' % failures,
@@ -266,42 +304,35 @@ def encrypt(image_path, data, **context) -> list:
     })
     return out_img_path if not failures else str()
 
-# TODO - FIX ME
 #@pysnooper.snoop()
-def decrypt(image_path, **context) -> list:
+def decrypt(**context) -> str:
     '''
     [ INPUT  ]:
     [ RETURN ]:
     '''
     global action_result
     failures = 0
-    try:
-        image, binary_message = Image.open(image_path), ""
-        img_array = np.array(image)
-
-        for i in range(img_array.shape[0]):
-            for j in range(img_array.shape[1]):
-                for color_channel in range(3):  # RGB channels
-                    binary_message += str(img_array[i, j, color_channel] & 1)
-
-        cleartext = ''.join(
-            chr(int(binary_message[i:i + 8], 2))
-            for i in range(0, len(binary_message), 8)
+    stdout, stderr, exit = shell_cmd(
+        'steghide extract -sf %s -p %s' % (
+            context['image_file'], context['keycode']
         )
-        write2file(str(cleartext), file_path=context.get('cleartext_file'))
-        if not cleartext:
-            failures += 1
-        action_result.update({'output': [str(cleartext)]})
-    except Exception as e:
+    )
+    if exit != 0:
+        action_result['errors'] += [stdout, stderr]
         failures += 1
-        action_result['errors'].append(str(e))
+    sanitized_stderr = stderr.lstrip('"b\'').rstrip('.\\n\'"').replace('"', '')
     action_result.update({
-        'input': [image_path],
+        'input': [context['image_file']],
+        'output': [stdout if exit != 0 else sanitized_stderr],
         'msg': 'OK: Decryption successful' if not failures \
             else 'NOK: Decryption failures detected (%s)' % failures,
         'exit': 0 if not failures else 9,
     })
-    return image_path
+    revealed_file = sanitized_stderr.split(' ')[-1]
+    if os.path.exists(revealed_file):
+        content = '\n'.join(file2list(revealed_file))
+        action_result['output'].append(content)
+    return context['image_file'] if not failures else str()
 
 # FORMATTERS
 
@@ -476,10 +507,13 @@ def setup(**context):
 
 # INIT
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def init_terminal_running_mode(**conf):
     global action_result
     while True:
+        action_result['errors'] = []
+        if os.path.exists(conf['tmp_file']):
+            os.remove(conf['tmp_file'])
         action = fetch_running_mode_from_user()
         if not action:
             action_result.update({
@@ -492,6 +526,13 @@ def init_terminal_running_mode(**conf):
             clear = clear_screen()
             display_header(**conf)
             continue
+        keycode = fetch_keycode_from_user()
+        if not keycode:
+            action_result.update({
+                'exit': 0,
+                'msg': 'Action aborted at keycode prompt'
+            })
+            break
         img_file = fetch_image_file_path_from_user()
         if not img_file:
             action_result.update({
@@ -507,26 +548,26 @@ def init_terminal_running_mode(**conf):
                     'msg': 'Action aborted at data input prompt'
                 })
                 break
-            args = [img_file, data]
-        elif action == 'decrypt':
-            args = [img_file]
         handlers = {
             'encrypt': encrypt,
             'decrypt': decrypt,
         }
-        if conf.get('running_mode') not in handlers:
+        if CONFIG.get('running_mode') not in handlers:
             action_result.update({
                 'exit': 4,
-                'msg': 'Invalid running mode %s' % conf.get('running_mode')
+                'msg': 'Invalid running mode %s' % CONFIG.get('running_mode')
             })
             return action_result['exit']
-        action = handlers[CONFIG['running_mode']](*args, **conf)
+        if action == 'encrypt':
+            action = handlers[CONFIG['running_mode']](data, **CONFIG)
+        else:
+            action = handlers[CONFIG['running_mode']](**CONFIG)
         if not action:
             action_result.update({
                 'exit': 5,
                 'msg': 'Action %s failed' % conf.get('running_mode')
             })
-        display = display2terminal(result=True, **conf)
+        display = display2terminal(result=True, **CONFIG)
         if not display:
             action_result.update({
                 'exit': 7,
@@ -542,6 +583,8 @@ def init_terminal_running_mode(**conf):
 @pysnooper.snoop()
 def init_file_running_mode(**conf):
     global action_result
+    if not conf.get('keycode'):
+        keycode = fetch_keycode_from_user()
     img_file = conf.get('image_file')
     if not os.path.exists(img_file):
         action_result.update({
@@ -553,9 +596,6 @@ def init_file_running_mode(**conf):
         data = ''.join(
             file2list(conf.get('cleartext_file', 'hc_cleartext.txt'))
         )
-        args = [img_file, data]
-    elif action == 'decrypt':
-        args = [img_file]
     handlers = {
         'encrypt': encrypt,
         'decrypt': decrypt,
@@ -566,6 +606,7 @@ def init_file_running_mode(**conf):
             'msg': 'Invalid running mode %s' % conf.get('running_mode')
         })
         return action_result['exit']
+    args = [] if conf['running_mode'] != 'encryption' else [data]
     action = handlers[CONFIG['running_mode']](*args, **conf)
     if not action:
         action_result.update({
@@ -590,7 +631,7 @@ def init_file_running_mode(**conf):
         })
     return action_result['exit']
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def init():
     global CONFIG
     global action_result
