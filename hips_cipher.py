@@ -7,33 +7,34 @@
 import optparse
 import os
 import json
-# import string
-# import numpy as np
 import pysnooper
 
 from subprocess import Popen, PIPE
-#from PIL import Image
-#from stegano import lsb
 
 SCRIPT_NAME = 'HIPSCipher'
 VERSION = '1.0'
 VERSION_NAME = 'Portal'
 CURRENT_DIR = os.getcwd()
+
 CONFIG = {
     'config_file': '',
     'current_dir': CURRENT_DIR,
+    'batch_dir': '%s/batch' % CURRENT_DIR,
     'tmp_file': '%s/hc_tmp.txt' % CURRENT_DIR,
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
     'cleartext_file': '%s/hc_cleartext.txt' % CURRENT_DIR,
     'running_mode': 'encrypt',                                                  # <decrypt|encrypt>
     'data_source': 'terminal',                                                  # <file|terminal>
+    'exif_data': '#!/',
+    'exif_tag': 'OWNER',
     'keycode': 'HIPS',                                                          # Encryption password
     'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
         'tmp_file', 'cleartext_file'
     ],
     'in_place': True,
+    'batch': False,
     'report': True,
     'silent': False,
 }
@@ -264,12 +265,8 @@ def stdout_msg(message, silence=False, red=False, info=False, warn=False,
 
 # ACTIONS
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def encrypt(*data, **context) -> str:
-    '''
-    [ INPUT  ]:
-    [ RETURN ]:
-    '''
     global action_result
     failures = 0
     if context.get('in_line'):
@@ -295,21 +292,18 @@ def encrypt(*data, **context) -> str:
     if exit != 0:
         action_result['errors'] += [stdout, stderr]
         failures += 1
+    secret_content = ''.join(file2list(secret_file))
     action_result.update({
         'input': [context['image_file']],
-        'output': [out_img_path, data],
+        'output': [out_img_path, secret_content],
         'msg': 'OK: Encryption successful' if os.path.exists(out_img_path) and \
             not failures else 'NOK: Encryption failures detected (%s)' % failures,
         'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
     })
     return out_img_path if not failures else str()
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def decrypt(**context) -> str:
-    '''
-    [ INPUT  ]:
-    [ RETURN ]:
-    '''
     global action_result
     failures = 0
     stdout, stderr, exit = shell_cmd(
@@ -430,6 +424,22 @@ def add_command_line_parser_options(parser):
         '-I', '--in-place', dest='in_place', action='store_true',
         help='Modify target image in place without creating copy.'
     )
+#   parser.add_option(
+#       '-b', '--batch', dest='batch', action='store_true',
+#       help='Perform actions on all files in the batch directory.'
+#   )
+#   parser.add_option(
+#       '-d', '--batch-dir', dest='batch_dir', type='string',
+#       help='Specify location to patch dirs of files.'
+#   )
+#   parser.add_option(
+#       '-x', '--exif-data', dest='exif_data', type='string',
+#       help='The exif data to write. (Implies --action write-exif)'
+#   )
+#   parser.add_option(
+#       '-X', '--exif-tag', dest='exif_tag', type='string',
+#       help='The exif tag to write. (Implies --action (write-exif|read-exif))'
+#   )
     parser.add_option(
         '-s', '--data-src', dest='data_source', type='string',
         help='Specify if the input data source. Options: <file|terminal>, '
@@ -592,7 +602,7 @@ def init_file_running_mode(**conf):
             'msg': 'Could not find image file %s' % img_file
         })
         return action_result['exit']
-    if action == 'encrypt':
+    if CONFIG.get('running_mode') == 'encrypt':
         data = ''.join(
             file2list(conf.get('cleartext_file', 'hc_cleartext.txt'))
         )
@@ -606,22 +616,12 @@ def init_file_running_mode(**conf):
             'msg': 'Invalid running mode %s' % conf.get('running_mode')
         })
         return action_result['exit']
-    args = [] if conf['running_mode'] != 'encryption' else [data]
+    args = [] if conf['running_mode'] != 'encrypt' else [conf['cleartext_file']]
     action = handlers[CONFIG['running_mode']](*args, **conf)
     if not action:
         action_result.update({
             'exit': 5,
             'msg': 'Action %s failed' % conf.get('running_mode')
-        })
-    else:
-        action_result.update({'output': action})
-    out_file = conf.get('cleartext_file') if conf.get('running_mode') \
-        == 'decrypt' else conf.get('ciphertext_file')
-    write = write2file(*action, file_path=out_file)
-    if not write:
-        action_result.update({
-            'exit': 6,
-            'msg': 'Could not write to out file %s' % out_file
         })
     display = display2terminal(result=True, **conf)
     if not display:
@@ -631,7 +631,7 @@ def init_file_running_mode(**conf):
         })
     return action_result['exit']
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def init():
     global CONFIG
     global action_result
@@ -694,50 +694,4 @@ if __name__ == '__main__':
 
 
 # CODE DUMP
-
-#   from PIL import Image
-#   import numpy as np
-
-#   def message_to_bin(message):
-#       return ''.join(format(ord(char), '08b') for char in message)
-
-#   def hide_message(image_path, message):
-#       image = Image.open(image_path)
-#       binary_message = message_to_bin(message)
-
-#       img_array = np.array(image)
-
-#       data_index = 0
-#       for i in range(img_array.shape[0]):
-#           for j in range(img_array.shape[1]):
-#               for color_channel in range(3):  # RGB channels
-#                   if data_index < len(binary_message):
-#                       img_array[i, j, color_channel] = img_array[i, j, color_channel] & ~1 | int(binary_message[data_index])
-#                       data_index += 1
-
-#       new_image = Image.fromarray(img_array)
-#       new_image.save("hidden_message.png")
-#       print("Message hidden successfully.")
-
-#   def retrieve_message(image_path):
-#       image = Image.open(image_path)
-
-#       img_array = np.array(image)
-#       binary_message = ""
-
-#       for i in range(img_array.shape[0]):
-#           for j in range(img_array.shape[1]):
-#               for color_channel in range(3):  # RGB channels
-#                   binary_message += str(img_array[i, j, color_channel] & 1)
-
-#       decoded_message = ''.join(chr(int(binary_message[i:i + 8], 2)) for i in range(0, len(binary_message), 8))
-#       print("Decoded message:", decoded_message)
-
-#   # Example usage:
-#   image_path = "image.png"
-#   secret_message = "This is a hidden message."
-
-#   hide_message(image_path, secret_message)
-#   retrieve_message("hidden_message.png")
-
 
