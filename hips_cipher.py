@@ -56,13 +56,14 @@ def fetch_running_mode_from_user(prompt: str = 'Action') -> str:
             '(%s)' % CONFIG['running_mode']
         )
     stdout_msg(
-        '1) Encrypt cleartext\n2) Decrypt ciphertext\n3) Dump all EXIF tags\n' + \
-        '4) Read EXIF tag\n5) Write EXIF tag\n6) Disk Cleanup\n' + \
-        '7) Clear all EXIF tags'
+        '1) Encrypt cleartext           5) Write EXIF tag\n' + \
+        '2) Decrypt ciphertext          6) Read EXIF tag\n' + \
+        '3) Dump all EXIF tags          7) Clear all EXIF tags\n' + \
+        '4) Disk Cleanup\n'
     )
     selection_map = {
-        '1': 'encrypt', '2': 'decrypt', '3': 'dump-exif', '4': 'read-exif',
-        '5': 'write-exif', '6': 'cleanup', '7': 'clean-exif'
+        '1': 'encrypt', '2': 'decrypt', '3': 'dump-exif', '4': 'cleanup',
+        '5': 'write-exif', '6': 'read-exif', '7': 'clean-exif'
     }
     while True:
         selection = input(prompt)
@@ -205,12 +206,12 @@ def fetch_keycode_from_user(prompt='KeyCode'):
 #@pysnooper.snoop()
 def check_preconditions(**conf):
     errors = []
-    file_paths = ['cleartext_file', 'image_file']
+    file_paths = ['image_file']
     requirements = ['running_mode', 'data_source']
     for fl in file_paths + requirements:
         if not conf.get(fl):
             errors.append('Attribute (%s) not set' % fl)
-    if conf.get('running_mode', '').lower() in ('encrypt', 'decrypt') \
+    if conf.get('running_mode', '').lower() in ('encrypt') \
             and conf.get('data_source') != 'terminal':
         if not os.path.exists(conf.get('cleartext_file')):
             errors.append(
@@ -364,10 +365,10 @@ def clean_exif(**context) -> str:
     })
     return out_img_path if not failures else None
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def write_exif(**context) -> str:
     global action_result
-    failures, tag_id = 0, context.get('exif_tag', piexif.ExifIFD.UserComment)
+    failures, tag_id = 0, int(context.get('exif_tag', piexif.ExifIFD.UserComment))
     if context.get('in_line'):
         out_img_path = context['image_file']
     else:
@@ -407,7 +408,7 @@ def write_exif(**context) -> str:
 def read_exif(**context) -> str:
     global action_result
     failures = 0
-    tag_id, tag_data = context.get('exif_tag', piexif.ExifIFD.UserComment), ''
+    tag_id, tag_data = int(context.get('exif_tag', piexif.ExifIFD.UserComment)), ''
     try:
         # Open the image using PIL
         image = Image.open(context['image_file'])
@@ -510,10 +511,13 @@ def encrypt(*data: List[str], **context) -> str:
     })
     return out_img_path if not failures else None
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def decrypt(**context) -> str:
     global action_result
     failures = 0
+
+    # TODO - FIX ME
+
     stdout, stderr, exit = shell_cmd(
         'steghide extract -sf %s -p %s' % (
             context['image_file'], context['keycode']
@@ -748,10 +752,10 @@ def cleanup(full=False, **context):
 
 # SETUP
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def setup(**context):
     global action_result
-    file_paths = ['cleartext_file']
+    file_paths = []
     dir_paths = ['batch_dir']
     for fl_label in file_paths:
         if fl_label not in context or os.path.exists(context[fl_label]):
@@ -770,7 +774,8 @@ def setup(**context):
     if action_result['errors']:
         action_result.update({
             'msg': '%s Setup failed ' % SCRIPT_NAME +
-                'with (%d) errors! Details: ' % len(errors) + ','.join(errors),
+                'with (%d) errors! Details: ' % len(action_result['errors']) \
+                + ','.join(action_result['errors']),
             'exit': 11,
         })
     return True if not action_result['errors'] else False
@@ -881,7 +886,7 @@ def init_file_running_mode(**conf):
         return action_result['exit']
     if conf.get('running_mode') == 'encrypt':
         data = ''.join(
-            file2list(conf.get('cleartext_file', 'hc_cleartext.txt'))
+            file2list(conf.get('cleartext_file', 'hc_clear.txt'))
         )
     handlers = {
         'encrypt': encrypt,
@@ -905,7 +910,6 @@ def init_file_running_mode(**conf):
             action = handlers[conf['running_mode']](*args, **conf)
     else:
         action = handlers[conf['running_mode']](*args, **conf)
-
     if action is None:
         action_result.update({
             'exit': 5,

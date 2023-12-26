@@ -8,80 +8,76 @@ import json
 import os
 import pysnooper
 
-from tst.conftest import shell_cmd, sanitize_line, CONFIG
-from hips_cipher import write2file, file2list
+from tst.conftest import shell_cmd
+from hips_cipher import write2file, file2list, cleanup
 
 
-@pysnooper.snoop()
-def test_file_base_decryption_from_cli(hc_setup_teardown, hc_decryption_cmd,
-                                       encryption_data, conf_json): #decryption_data,
+#@pysnooper.snoop()
+def test_file_base_decryption_from_cli(hc_setup_teardown, hc_decryption_cmd, conf_json):
     conf_json.update({'running_mode': 'decrypt', 'report': False})
+    if os.path.exists(conf_json['cleartext_file']):
+        os.remove(conf_json['cleartext_file'])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    conf_json['image_file'] = crypted_img
     write2file(
-        json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
+        json.dumps(conf_json, indent=4), file_path=conf_json['config_file'], mode='w'
     )
     cmd = hc_decryption_cmd + [
-        '--key-code', CONFIG['keycode'],
-#       '--ciphertext-file', CONFIG['ciphertext_file'],
-        '--cleartext-file', CONFIG['cleartext_file'],
+        '--image-file', conf_json['image_file'],
+        '--key-code', conf_json['keycode'],
     ]
-#   write2file(
-#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-#   )
-#   out, err, exit = shell_cmd(' '.join(cmd))
-#   assert exit == 0
-    cleartext_content = file2list(CONFIG['cleartext_file'])
+    if os.path.exists(conf_json['cleartext_file']):
+        os.remove(conf_json['cleartext_file'])
+    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
+    out, err, exit = shell_cmd(' '.join(cmd))
+    assert exit == 0
+    cleartext_content = file2list(conf_json['cleartext_file'])
     assert cleartext_content
-    for i in range(len(cleartext_content)):
-        assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
 
-@pysnooper.snoop()
-def test_file_base_decryption_from_cli_silently(hc_setup_teardown, hc_decryption_cmd,
-                                                encryption_data, conf_json): #decryption_data,
+#@pysnooper.snoop()
+def test_file_base_decryption_from_cli_silently(hc_setup_teardown, hc_decryption_cmd, conf_json):
     conf_json.update({'running_mode': 'decrypt', 'report': False})
-    write2file(
-        json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
-    )
+    if os.path.exists(conf_json['cleartext_file']):
+        os.remove(conf_json['cleartext_file'])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    conf_json['image_file'] = crypted_img
     cmd = hc_decryption_cmd + [
-        '--key-code', CONFIG['keycode'],
-#       '--ciphertext-file', CONFIG['ciphertext_file'],
-        '--cleartext-file', CONFIG['cleartext_file'],
+        '--image-file', conf_json['image_file'],
+        '--key-code', conf_json['keycode'],
         '--silent'
     ]
-#   write2file(
-#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-#   )
-#   out, err, exit = shell_cmd(' '.join(cmd))
-#   assert exit == 0
-    cleartext_content = file2list(CONFIG['cleartext_file'])
+    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
+    out, err, exit = shell_cmd(' '.join(cmd))
+    assert exit == 0
+    cleartext_content = file2list(conf_json['cleartext_file'])
     assert cleartext_content
-    for i in range(len(cleartext_content)):
-        assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
 
-@pysnooper.snoop()
-def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption_cmd,
-                                                encryption_data, conf_json): #decryption_data,
+#@pysnooper.snoop()
+def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption_cmd, conf_json):
     conf_json.update({'running_mode': 'decrypt', 'report': True})
-    write2file(
-        json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
-    )
+    if os.path.exists(conf_json['cleartext_file']):
+        os.remove(conf_json['cleartext_file'])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    conf_json['image_file'] = crypted_img
     cmd = hc_decryption_cmd + [
-        '--key-code', CONFIG['keycode'],
-#       '--ciphertext-file', CONFIG['ciphertext_file'],
-        '--cleartext-file', CONFIG['cleartext_file'],
+        '--image-file', conf_json['image_file'],
+        '--key-code', conf_json['keycode'],
         '--silent'
     ]
-#   write2file(
-#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-#   )
-#   out, err, exit = shell_cmd(' '.join(cmd))
-#   assert exit == 0
-    assert os.path.exists(CONFIG['report_file'])
-    cleartext_content = file2list(CONFIG['cleartext_file'])
+    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
+    out, err, exit = shell_cmd(' '.join(cmd))
+    assert exit == 0
+    assert os.path.exists(conf_json['report_file'])
+    cleartext_content = file2list(conf_json['cleartext_file'])
     assert cleartext_content
-    for i in range(len(cleartext_content)):
-        assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
     report_content = {}
-    with open(CONFIG['report_file'], 'r') as fl:
+    with open(conf_json['report_file'], 'r') as fl:
         report_content = json.load(fl)
     assert report_content['input']
     assert isinstance(report_content['input'], list)
@@ -92,19 +88,20 @@ def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption
     assert report_content['exit'] == 0
 
 @pysnooper.snoop()
-def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd,
-                                          encryption_data, conf_json): #decryption_data,
+def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt'})
+    if os.path.exists(conf_json['cleartext_file']):
+        os.remove(conf_json['cleartext_file'])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    conf_json['image_file'] = crypted_img
     write2file(
-        json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
+        json.dumps(conf_json, indent=4), file_path=conf_json['config_file'], mode='w'
     )
-#   write2file(
-#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-#   )
-#   out, err, exit = shell_cmd(' '.join(hc_konfig_cmd))
-#   assert exit == 0
-    cleartext_content = file2list(CONFIG['cleartext_file'])
+    print('[ DEBUG ]: Running CMD -', ' '.join(hc_konfig_cmd))
+    out, err, exit = shell_cmd(' '.join(hc_konfig_cmd))
+    assert exit == 0
+    cleartext_content = file2list(conf_json['cleartext_file'])
     assert cleartext_content
-    for i in range(len(cleartext_content)):
-        assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
 

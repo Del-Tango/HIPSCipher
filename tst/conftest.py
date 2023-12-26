@@ -23,7 +23,7 @@ CONFIG = {
     'cleartext_file': '%s/hc_clear.txt' % CURRENT_DIR,
     'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
     'data_source': 'terminal',                                                  # <file|terminal>
-    'exif_data': '#!/',
+    'exif_data': 'Regards',
     'exif_tag': 37510,
     'keycode': 'HIPS',                                                          # Encryption password
     'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
@@ -66,9 +66,12 @@ def hc_dump_exif_cmd(*args, **context):
 @pytest.fixture
 def hc_write_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'write-exif']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'write-exif',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'write-exif']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'write-exif', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -76,9 +79,12 @@ def hc_write_exif_cmd(*args, **context):
 @pytest.fixture
 def hc_read_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'read-exif']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'read-exif',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'read-exif']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'read-exif', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -86,9 +92,12 @@ def hc_read_exif_cmd(*args, **context):
 @pytest.fixture
 def hc_clean_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'clean-exif']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'clean-exif',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'clean-exif']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'clean-exif', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -96,9 +105,12 @@ def hc_clean_exif_cmd(*args, **context):
 @pytest.fixture
 def hc_encryption_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'encrypt']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'encrypt',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'encrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'encrypt', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -106,9 +118,12 @@ def hc_encryption_cmd(*args, **context):
 @pytest.fixture
 def hc_decryption_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'decrypt']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'decrypt',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'decrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'decrypt', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -116,9 +131,12 @@ def hc_decryption_cmd(*args, **context):
 @pytest.fixture
 def hc_cleanup_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './hips_cipher.py', '--action', 'cleanup']
+        cmd = [
+            PYTHON3, './hips_cipher.py', '--action', 'cleanup',
+            '--data-src', 'file'
+        ]
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './hips_cipher.py', '-a', 'cleanup']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'cleanup', '-s', 'file']
     if args:
         cmd = cmd + list(args)
     return cmd

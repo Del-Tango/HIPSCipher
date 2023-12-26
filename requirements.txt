@@ -1,8 +1,7 @@
 setuptools
 pysnooper
 subprocess
-stegano
 piexif
 PIL
 pytest
-
+shutil
