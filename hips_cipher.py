@@ -27,7 +27,7 @@ CONFIG = {
     'tmp_file': '%s/hc_tmp.txt' % CURRENT_DIR,
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
-    'cleartext_file': '%s/hc_cleartext.txt' % CURRENT_DIR,
+    'cleartext_file': '%s/hc_clear.txt' % CURRENT_DIR,
     'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
     'data_source': 'terminal',                                                  # <file|terminal>
     'exif_data': '#!/',
@@ -35,7 +35,7 @@ CONFIG = {
     'keycode': 'HIPS',                                                          # Encryption password
     'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
-        'tmp_file', 'cleartext_file'
+        'tmp_file', 'cleartext_file', 'report_file'
     ],
     'in_place': True,
     'batch': False,

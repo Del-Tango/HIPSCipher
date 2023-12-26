@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# Excellent Regards, the Alveare Solutions #!/Society -x
+#
+# Steganography
+
+cat <<EOF
+
+  _____________________________________________________________________________
+
+    *                          *  Steganography  *                          *
+  _____________________________________________________________________________
+               Excellent Regards, the Alveare Solutions #!/Society -x
+
+[ Image-Based Steganography ]:
+
+    Steganography is the art and science of concealing information within seemingly
+    neutral data in order to keep the existence of the information confidential.
+    In the context of digital images, image-based steganography involves hiding
+    data within image files without visibly altering the original image. This
+    covert communication technique is employed for various purposes, ranging from
+    secure data transmission to privacy protection.
+
+    Techniques:
+
+    LSB (Least Significant Bit) Embedding: LSB embedding is one of the most
+    common techniques, involving the replacement or manipulation of the least
+    significant bits in the pixel values of an image.  It takes advantage of
+    the fact that a small change in the least significant bits of pixel values
+    is less likely to be noticed by the human eye.
+
+    Frequency Domain Techniques: These techniques involve transforming the
+    image into the frequency domain using methods like Discrete Cosine
+    Transform (DCT) or Discrete Wavelet Transform (DWT).  Data is then embedded
+    in the transformed coefficients, and the inverse transform is applied to
+    obtain the steganographic image.
+
+    Spread Spectrum Technique: This technique spreads the data across the
+    image, making it harder to detect.  Each pixel or a group of pixels carries
+    a part of the hidden message.
+
+    Phase Coding: In phase coding, the phase information of the image is
+    manipulated to embed data.  This method is less common but can be robust
+    against certain types of attacks.
+
+[ EXIF Manipulation ]:
+
+    EXIF (Exchangeable image file format) is a standard for storing metadata in
+    image files, including details such as camera settings, date and time, and
+    geolocation. Manipulating EXIF data in images is another form of steganography,
+    often used for information hiding or tampering.
+
+    Key points regarding EXIF manipulation:
+
+    Data Concealment: Hidden data can be stored within EXIF fields without
+    visibly altering the image.  Commonly used fields include user comments or
+    custom fields that may not be immediately visible when viewing the image.
+
+    Metadata Tampering: EXIF metadata can be altered to mislead or deceive,
+    changing information such as date and time, camera model, or GPS
+    coordinates. This can be used for privacy protection or to manipulate the
+    context of an image.
+
+    Security Considerations:
+
+    Detection Challenges: Steganographic techniques aim to be undetectable,
+    making it challenging to identify the presence of hidden information in
+    images.
+
+    Authentication Risks: Manipulating EXIF data can raise concerns regarding
+    the authenticity of an image, as altered metadata may indicate tampering.
+
+    Robustness and Capacity: The choice of steganographic technique depends on
+    factors such as the required data capacity, robustness against image
+    processing, and the potential impact on image quality.
+
+EOF
+

@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+# Excellent Regards, the Alveare Solutions #!/Society -x
+#
+# HIPS Cipher
+
+cat <<EOF
+_______________________________________________________________________________
+
+  *              *             *  HIPSCipher  *              *             *
+________________________________________________________v1.0Portal_____________
+             Excellent Regards, the Alveare Solutions #!/Society -x
+
+[ DESCRIPTION ]: HIPSCipher Encryption/Decryption -
+
+    [ Ex ]: Terminal based running mode with default settings
+       ~$ hipscipher
+
+    [ Ex ]: File based running mode decryption
+       ~$ hipscipher \\
+           --action decrypt \\
+           --image-file ./dta/Regards.jpg \\
+           --key-code HIPS1234
+
+    [ Ex ]: File based running mode encryption with no STDOUT
+       ~$ hipscipher \\
+           --action encrypt \\
+           --image-file ./dta/Regards.jpg \\
+           --key-code HIPS1234 \\
+           --cleartext-file hc_cleartext.txt \\
+           --in-place \\
+           --silent
+
+    [ Ex ]: File based running mode batch encryption with STDOUT
+       ~$ hipscipher \\
+           --action encrypt \\
+           --key-code HIPS1234 \\
+           --batch \\
+           --batch-dir files2encrypt \\
+           --cleartext-file hc_cleartext.txt
+
+   [ Ex ]: File based EXIF dump saved to non-default report file
+       ~$ hipscipher \\
+           --action dump-exif \\
+           --image-file ./dta/Regards.jpg \\
+           --report \\
+           --report-file hc_custom.report
+
+   [ Ex ]: File based EXIF write
+       ~$ hipscipher \\
+           --action write-exif \\
+           --exif-tag 37510 \\
+           --exif-data #!/ \\
+           --image-file ./dta/Regards.jpg
+
+   [ Ex ]: File based EXIF tag read
+       ~$ hipscipher \\
+           --action read-exif \\
+           --exif-tag 37510 \\
+           --image-file ./dta/Regards.jpg
+
+   [ Ex ]: File based EXIF cleanup
+       ~$ hipscipher \\
+           --action clean-exif \\
+           --image-file ./dta/Regards.jpg
+
+   [ Ex ]: Run with context data from JSON config file
+       ~$ hipscipher \\
+           --konfig-file conf/hips_cipher.conf.json
+
+   [ Ex ]: Cleanup all generated files from disk
+       ~$ hipscipher \\
+           --action cleanup
+
+Options:
+  -h, --help            show this help message and exit
+  -a RUNNING_MODE, --action=RUNNING_MODE
+                        Specify the desired action. Options:
+                        <encrypt|decrypt|cleanup>
+  -i IMAGE_FILE, --image-file=IMAGE_FILE
+                        Path to the image file to operate on.
+  -c CLEARTEXT_FILE, --cleartext-file=CLEARTEXT_FILE
+                        Cleartext file path for IO operations during file
+                        running mode.
+  -d BATCH_DIR, --batch-dir=BATCH_DIR
+                        Specify location to patch dirs of files.
+  -x EXIF_DATA, --exif-data=EXIF_DATA
+                        The exif data to write. (Implies --action write-exif,
+                        Default: #!/)
+  -X EXIF_TAG, --exif-tag=EXIF_TAG
+                        The exif tag to write. (Implies --action (write-
+                        exif|read-exif), Default: [37510]UserComment)
+  -s DATA_SOURCE, --data-src=DATA_SOURCE
+                        Specify if the input data source. Options:
+                        <file|terminal>, Default: file
+  -R REPORT_FILE, --report-file=REPORT_FILE
+                        Specify path of report file. (Implies --report)
+  -k KEYCODE, --key-code=KEYCODE
+                        Cryptographic password.
+  -K CONFIG_FILE, --konfig-file=CONFIG_FILE
+                        Path to the HIPSCipher configuration file.
+  -I, --in-place        Modify target image in place without creating copy.
+  -b, --batch           Perform actions on all files in the batch directory.
+  -S, --silent          Run with no STDOUT output. Implies a file data source.
+  -r, --report          Save action results to report file.
+
+EOF
