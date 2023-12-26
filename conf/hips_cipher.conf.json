@@ -1,12 +1,20 @@
 {
     "config_file": "./conf/hips_cipher.conf.json",
     "current_dir": ".",
+    "batch_dir": "batch",
+    "tmp_file": "hc_tmp.txt",
     "report_file": "hc_report.dump",
+    "image_file": "dta/Regards.jpg",
+    "cleartext_file": "hc_cleartext.txt",
     "running_mode": "encrypt",
-    "data_source": "file",
-    "cleanup": [],
-    "full_cleanup": [
-    ],
+    "data_source": "terminal",
+    "exif_data": "#!/",
+    "exif_tag": 37510,
+    "keycode": "HIPS",
+    "cleanup": ["tmp_file"],
+    "full_cleanup": ["tmp_file", "cleartext_file"],
+    "in_place": true,
+    "batch": false,
     "report": true,
     "silent": false
 }

@@ -6,6 +6,7 @@
 
 import optparse
 import os
+import glob
 import json
 import pysnooper
 import piexif
@@ -158,10 +159,8 @@ def fetch_image_file_path_from_user(prompt='IMGPath'):
     print()
     return img_path
 
-def fetch_replay_confirmation_from_user(prompt='Replay'):
-    stdout_msg(
-        '[ Q/A ]: Do you want to go again?', silence=CONFIG.get('silent')
-    )
+def fetch_replay_confirmation_from_user(prompt='Replay', qa_msg='Do you want to go again?'):
+    stdout_msg('[ Q/A ]: %s' % qa_msg, silence=CONFIG.get('silent'))
     while True:
         answer = input(prompt + '[Y/N]> ')
         if not answer:
@@ -228,10 +227,22 @@ def check_preconditions(**conf):
         errors.append(
             'Invalid data source specified (%s)' % conf.get('data_source')
         )
+    if conf.get('batch') and not os.path.exists(conf.get('batch_dir')):
+        errors.append(
+            'Batch action specified but batch directory (%s) not found'
+            % conf.get('batch_dir')
+        )
     action_result.update({'exit': len(errors) + 10, 'msg': '\n'.join(errors)})
     return False if errors else True
 
 # GENERAL
+
+def batch_dir2list(directory):
+    image_paths, image_types = [], ['*.jpg', '*.jpeg', '*.png']
+    for image_type in image_types:
+        pattern = os.path.join(directory, image_type)
+        image_paths.extend(glob.glob(pattern))
+    return image_paths
 
 def shell_cmd(command, user=None):
     if user:
@@ -315,7 +326,6 @@ def stdout_msg(message, silence=False, red=False, info=False, warn=False,
 
 # ACTIONS
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def clean_exif(**context) -> str:
     global action_result
@@ -345,15 +355,15 @@ def clean_exif(**context) -> str:
         failures += 1
         action_result['errors'].append(str(e))
     action_result.update({
-        'input': [context['image_file']],
-        'output': [out_img_path] if os.path.exists(out_img_path) else [],
+        'input': action_result['input'] + [context['image_file']],
+        'output': action_result['output'] + [out_img_path]
+            if os.path.exists(out_img_path) else action_result['output'],
         'msg': 'OK: EXIF clean successful' if not failures \
             else 'NOK: EXIF clean failures detected (%s)' % failures,
         'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
     })
     return out_img_path if not failures else None
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def write_exif(**context) -> str:
     global action_result
@@ -384,16 +394,15 @@ def write_exif(**context) -> str:
         failures += 1
         action_result['errors'].append(str(e))
     action_result.update({
-        'input': [context['image_file'], f'EXIF Tag: {tag_id}'],
-        'output': [out_img_path, context['exif_data']]
-            if os.path.exists(out_img_path) else [],
+        'input': action_result['input'] + [context['image_file'], f'EXIF Tag: {tag_id}'],
+        'output': action_result['output'] + [out_img_path, context['exif_data']]
+            if os.path.exists(out_img_path) else action_result['output'],
         'msg': 'OK: EXIF write successful' if not failures \
             else 'NOK: EXIF write failures detected (%s)' % failures,
         'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
     })
     return out_img_path if not failures else None
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def read_exif(**context) -> str:
     global action_result
@@ -423,15 +432,15 @@ def read_exif(**context) -> str:
         failures += 1
         action_result['errors'].append(str(e))
     action_result.update({
-        'input': [context['image_file'], f'EXIF Tag: {tag_id}'],
-        'output': [tag_data] if tag_data else [],
+        'input': action_result['input'] + [context['image_file'], f'EXIF Tag: {tag_id}'],
+        'output': action_result['output'] + [tag_data]
+            if tag_data else action_result['output'],
         'msg': 'OK: EXIF read successful' if not failures \
             else 'NOK: EXIF read failures detected (%s)' % failures,
         'exit': 0 if not failures else 9,
     })
     return tag_data if not failures else None
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def dump_exif(**context) -> dict:
     global action_result
@@ -455,15 +464,15 @@ def dump_exif(**context) -> dict:
         failures += 1
         action_result['errors'].append(str(e))
     action_result.update({
-        'input': [context['image_file']],
-        'output': [exif_data] if exif_data else [],
+        'input': action_result['input'] + [context['image_file']],
+        'output': action_result['output'] + [exif_data]
+            if exif_data else action_result['output'],
         'msg': 'OK: EXIF dump successful' if not failures \
             else 'NOK: EXIF dump failures detected (%s)' % failures,
         'exit': 0 if not failures else 9,
     })
     return exif_data if not failures else None
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def encrypt(*data: List[str], **context) -> str:
     global action_result
@@ -493,15 +502,14 @@ def encrypt(*data: List[str], **context) -> str:
         failures += 1
     secret_content = ''.join(file2list(secret_file))
     action_result.update({
-        'input': [context['image_file']],
-        'output': [out_img_path, secret_content],
+        'input': action_result['input'] + [context['image_file']],
+        'output': action_result['output'] + [out_img_path, secret_content],
         'msg': 'OK: Encryption successful' if os.path.exists(out_img_path) and \
             not failures else 'NOK: Encryption failures detected (%s)' % failures,
         'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
     })
     return out_img_path if not failures else None
 
-# TODO - Add batch support
 #@pysnooper.snoop()
 def decrypt(**context) -> str:
     global action_result
@@ -516,8 +524,8 @@ def decrypt(**context) -> str:
         failures += 1
     sanitized_stderr = stderr.lstrip('"b\'').rstrip('.\\n\'"').replace('"', '')
     action_result.update({
-        'input': [context['image_file']],
-        'output': [stdout if exit != 0 else sanitized_stderr],
+        'input': action_result['input'] + [context['image_file']],
+        'output': action_result['output'] + [stdout if exit != 0 else sanitized_stderr],
         'msg': 'OK: Decryption successful' if not failures \
             else 'NOK: Decryption failures detected (%s)' % failures,
         'exit': 0 if not failures else 9,
@@ -578,12 +586,12 @@ def create_command_line_parser():
         '    [ Ex ]: File based running mode decryption\n'
         '       ~$ %prog \\ \n'
         '           --action decrypt \\ \n'
-        '           --image-file target.jpg \\ \n'
+        '           --image-file ./dta/Regards.jpg \\ \n'
         '           --key-code HIPS1234\n\n'
         '    [ Ex ]: File based running mode encryption with no STDOUT\n'
         '       ~$ %prog \\ \n'
         '           --action encrypt \\ \n'
-        '           --image-file target.jpg \\ \n'
+        '           --image-file ./dta/Regards.jpg \\ \n'
         '           --key-code HIPS1234 \\ \n'
         '           --cleartext-file hc_cleartext.txt \\ \n'
         '           --in-place \\ \n'
@@ -598,7 +606,7 @@ def create_command_line_parser():
         '   [ Ex ]: File based EXIF dump saved to non-default report file\n'
         '       ~$ %prog \\ \n'
         '           --action dump-exif \\ \n'
-        '           --image-file target.jpg \\ \n'
+        '           --image-file ./dta/Regards.jpg \\ \n'
         '           --report \\ \n'
         '           --report-file hc_custom.report\n\n'
         '   [ Ex ]: File based EXIF write\n'
@@ -606,16 +614,16 @@ def create_command_line_parser():
         '           --action write-exif \\ \n'
         '           --exif-tag 37510 \\ \n'
         '           --exif-data #!/ \\ \n'
-        '           --image-file target.jpg\n\n'
+        '           --image-file ./dta/Regards.jpg\n\n'
         '   [ Ex ]: File based EXIF tag read\n'
         '       ~$ %prog \\ \n'
         '           --action read-exif \\ \n'
         '           --exif-tag 37510 \\ \n'
-        '           --image-file target.jpg\n\n'
+        '           --image-file ./dta/Regards.jpg\n\n'
         '   [ Ex ]: File based EXIF cleanup\n'
         '       ~$ %prog \\ \n'
         '           --action clean-exif \\ \n'
-        '           --image-file target.jpg\n\n'
+        '           --image-file ./dta/Regards.jpg\n\n'
         '   [ Ex ]: Run with context data from JSON config file\n'
         '       ~$ %prog \\ \n'
         '           --konfig-file conf/hips_cipher.conf.json\n\n'
@@ -672,6 +680,10 @@ def add_command_line_parser_options(parser):
     parser.add_option(
         '-R', '--report-file', dest='report_file', type='string',
         help='Specify path of report file. (Implies --report)'
+    )
+    parser.add_option(
+        '-k', '--key-code', dest='keycode', type=str,
+        help='Cryptographic password.'
     )
     parser.add_option(
         '-K', '--konfig-file', dest='config_file', type=str,
@@ -740,11 +752,19 @@ def cleanup(full=False, **context):
 def setup(**context):
     global action_result
     file_paths = ['cleartext_file']
+    dir_paths = ['batch_dir']
     for fl_label in file_paths:
         if fl_label not in context or os.path.exists(context[fl_label]):
             continue
         try:
             create = write2file('', mode='a', file_path=context[fl_label])
+        except Exception as e:
+            action_result['errors'].append(str(e))
+    for dir_label in dir_paths:
+        if dir_label not in context or os.path.exists(context[dir_label]):
+            continue
+        try:
+            create = os.makedirs(context[dir_label])
         except Exception as e:
             action_result['errors'].append(str(e))
     if action_result['errors']:
@@ -825,14 +845,10 @@ def init_terminal_running_mode(**conf):
                 'msg': 'Invalid running mode %s' % CONFIG.get('running_mode')
             })
             return action_result['exit']
-
-        # TODO - Handle batch action here
-
         if action == 'encrypt':
             action = handlers[CONFIG['running_mode']](data, **CONFIG)
         else:
             action = handlers[CONFIG['running_mode']](**CONFIG)
-
         if action is None:
             action_result.update({
                 'exit': 5,
@@ -863,7 +879,7 @@ def init_file_running_mode(**conf):
             'msg': 'Could not find image file %s' % img_file
         })
         return action_result['exit']
-    if CONFIG.get('running_mode') == 'encrypt':
+    if conf.get('running_mode') == 'encrypt':
         data = ''.join(
             file2list(conf.get('cleartext_file', 'hc_cleartext.txt'))
         )
@@ -881,16 +897,19 @@ def init_file_running_mode(**conf):
             'msg': 'Invalid running mode %s' % conf.get('running_mode')
         })
         return action_result['exit']
-
-        # TODO - Handle batch action here
-
     args = [] if conf['running_mode'] != 'encrypt' else [conf['cleartext_file']]
-    action = handlers[CONFIG['running_mode']](*args, **conf)
+    if conf.get('batch'):
+        image_paths = batch_dir2list(conf['batch_dir'])
+        for img_path in image_paths:
+            conf['image_file'] = img_path
+            action = handlers[conf['running_mode']](*args, **conf)
+    else:
+        action = handlers[conf['running_mode']](*args, **conf)
 
     if action is None:
         action_result.update({
             'exit': 5,
-            'msg': 'Action %s failed' % CONFIG.get('running_mode')
+            'msg': 'Action %s failed' % conf.get('running_mode')
         })
     display = display2terminal(result=True, **conf)
     if not display:
@@ -935,6 +954,7 @@ def init():
             })
             exit(action_result['exit'])
         if not cli_parse or CONFIG.get('data_source').lower() == 'terminal':
+            CONFIG['batch'] = False
             run = init_terminal_running_mode(**CONFIG)
         else:
             run = init_file_running_mode(**CONFIG)
