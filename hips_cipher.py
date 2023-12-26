@@ -535,23 +535,6 @@ def display_header(**context):
 
 # CREATORS
 
-#   parser.add_option(
-#       '-b', '--batch', dest='batch', action='store_true',
-#       help='Perform actions on all files in the batch directory.'
-#   )
-#   parser.add_option(
-#       '-d', '--batch-dir', dest='batch_dir', type='string',
-#       help='Specify location to patch dirs of files.'
-#   )
-#   parser.add_option(
-#       '-x', '--exif-data', dest='exif_data', type='string',
-#       help='The exif data to write. (Implies --action write-exif)'
-#   )
-#   parser.add_option(
-#       '-X', '--exif-tag', dest='exif_tag', type='string',
-#       help='The exif tag to write. (Implies --action (write-exif|read-exif))'
-#   )
-
 #@pysnooper.snoop()
 def create_command_line_parser():
     parser = optparse.OptionParser(
@@ -580,20 +563,24 @@ def create_command_line_parser():
         '           --cleartext-file hc_cleartext.txt\n\n'
         '   [ Ex ]: File based EXIF dump saved to non-default report file\n'
         '       ~$ %prog \\ \n'
-        '           --action exif-dump \\ \n'
+        '           --action dump-exif \\ \n'
         '           --image-file target.jpg \\ \n'
         '           --report \\ \n'
         '           --report-file hc_custom.report\n\n'
         '   [ Ex ]: File based EXIF write\n'
         '       ~$ %prog \\ \n'
         '           --action write-exif \\ \n'
-        '           --exif-tag OWNER \\ \n'
+        '           --exif-tag 37510 \\ \n'
         '           --exif-data #!/ \\ \n'
         '           --image-file target.jpg\n\n'
         '   [ Ex ]: File based EXIF tag read\n'
         '       ~$ %prog \\ \n'
         '           --action read-exif \\ \n'
         '           --exif-tag 37510 \\ \n'
+        '           --image-file target.jpg\n\n'
+        '   [ Ex ]: File based EXIF cleanup\n'
+        '       ~$ %prog \\ \n'
+        '           --action clean-exif \\ \n'
         '           --image-file target.jpg\n\n'
         '   [ Ex ]: Run with context data from JSON config file\n'
         '       ~$ %prog \\ \n'
@@ -820,7 +807,7 @@ def init_terminal_running_mode(**conf):
         display_header(**CONFIG)
     return action_result['exit']
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def init_file_running_mode(**conf):
     global action_result
     if not conf.get('keycode'):
@@ -839,6 +826,10 @@ def init_file_running_mode(**conf):
     handlers = {
         'encrypt': encrypt,
         'decrypt': decrypt,
+        'write-exif': write_exif,
+        'read-exif': read_exif,
+        'dump-exif': dump_exif,
+        'clean-exif': clean_exif,
     }
     if conf.get('running_mode') not in handlers:
         action_result.update({
@@ -852,10 +843,10 @@ def init_file_running_mode(**conf):
     args = [] if conf['running_mode'] != 'encrypt' else [conf['cleartext_file']]
     action = handlers[CONFIG['running_mode']](*args, **conf)
 
-    if not action:
+    if action is None:
         action_result.update({
             'exit': 5,
-            'msg': 'Action %s failed' % conf.get('running_mode')
+            'msg': 'Action %s failed' % CONFIG.get('running_mode')
         })
     display = display2terminal(result=True, **conf)
     if not display:
