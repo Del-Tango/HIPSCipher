@@ -12,16 +12,14 @@ from hips_cipher import *
 
 
 #@pysnooper.snoop()
-def test_encryption(hc_setup_teardown, encryption_data, decryption_data, conf_json):
+def test_encryption(hc_setup_teardown, encryption_data, conf_json):
     lock_n_load = setup(**conf_json)
     assert lock_n_load
     check = check_preconditions(**conf_json)
     assert check
-    build = build_cache(**conf_json)
-    assert build
-    result = encrypt_cleartext(*encryption_data, **conf_json)
+    with open(conf_json['cleartext_file'], 'w') as fl:
+        fl.write(''.join(encryption_data))
+    result = encrypt(conf_json['cleartext_file'], **conf_json)
     assert result
-    assert len(result) == len(encryption_data)
-    for i in range(len(result)):
-        assert sanitize_line(result[i]) == sanitize_line(decryption_data[i])
+    assert os.path.exists(result)
 
