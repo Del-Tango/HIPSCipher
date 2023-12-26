@@ -1,4 +1,8 @@
 setuptools
 pysnooper
-pytest
+subprocess
 stegano
+piexif
+PIL
+pytest
+

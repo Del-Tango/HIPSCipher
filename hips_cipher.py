@@ -8,8 +8,11 @@ import optparse
 import os
 import json
 import pysnooper
+import piexif
 
+from typing import List
 from subprocess import Popen, PIPE
+from PIL import Image, ExifTags
 
 SCRIPT_NAME = 'HIPSCipher'
 VERSION = '1.0'
@@ -24,10 +27,10 @@ CONFIG = {
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
     'cleartext_file': '%s/hc_cleartext.txt' % CURRENT_DIR,
-    'running_mode': 'encrypt',                                                  # <decrypt|encrypt>
+    'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
     'data_source': 'terminal',                                                  # <file|terminal>
     'exif_data': '#!/',
-    'exif_tag': 'OWNER',
+    'exif_tag': piexif.ExifIFD.UserComment,
     'keycode': 'HIPS',                                                          # Encryption password
     'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
@@ -42,7 +45,7 @@ action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
 
 # FETCHERS
 
-def fetch_running_mode_from_user(prompt='Action'):
+def fetch_running_mode_from_user(prompt: str = 'Action') -> str:
     global CONFIG
     stdout_msg('Specify action or (.back)...', info=True)
     if CONFIG.get('running_mode'):
@@ -51,8 +54,15 @@ def fetch_running_mode_from_user(prompt='Action'):
             '[ INFO ]: Leave blank to keep current '\
             '(%s)' % CONFIG['running_mode']
         )
-    stdout_msg('1) Encrypt cleartext\n2) Decrypt ciphertext\n3) Disk Cleanup')
-    selection_map = {'1': 'encrypt', '2': 'decrypt', '3': 'cleanup'}
+    stdout_msg(
+        '1) Encrypt cleartext\n2) Decrypt ciphertext\n3) Dump all EXIF tags\n' + \
+        '4) Read EXIF tag\n5) Write EXIF tag\n6) Disk Cleanup\n' + \
+        '7) Clear all EXIF tags'
+    )
+    selection_map = {
+        '1': 'encrypt', '2': 'decrypt', '3': 'dump-exif', '4': 'read-exif',
+        '5': 'write-exif', '6': 'cleanup', '7': 'clean-exif'
+    }
     while True:
         selection = input(prompt)
         if not selection:
@@ -62,7 +72,7 @@ def fetch_running_mode_from_user(prompt='Action'):
                 if v == CONFIG.get('running_mode')][0]
         if selection == '.back':
             return
-        if selection not in ('1', '2', '3'):
+        if selection not in ('1', '2', '3', '4', '5', '6', '7'):
             print('[ ERROR ]: Invalid selection (%s)' % selection)
         CONFIG['running_mode'] = selection_map[selection]
         break
@@ -74,7 +84,10 @@ def fetch_data_from_user(prompt='Data'):
         'Specify input data for action '\
         '(%s) or (.back)...' % CONFIG.get('running_mode', ''), info=True
     )
-    if CONFIG.get('running_mode') in ('encrypt', 'decrypt', 'cleanup'):
+    if CONFIG.get('running_mode') in (
+            'encrypt', 'decrypt', 'cleanup', 'dump-exif', 'read-exif',
+            'write-exif', 'clean-exif'
+        ):
         prompt = prompt + '[' + CONFIG['running_mode'] + ']'
     while True:
         data = input(prompt + '> ')
@@ -170,7 +183,10 @@ def check_preconditions(**conf):
             errors.append(
                 'Cleartext file (%s) not found' % conf.get('cleartext_file')
             )
-    if conf.get('running_mode', '').lower() not in ('encrypt', 'decrypt', 'cleanup'):
+    if conf.get('running_mode', '').lower() not in (
+                'encrypt', 'decrypt', 'cleanup',
+                'write-exif', 'read-exif', 'dump-exif', 'clean-exif'
+            ):
         errors.append(
             'Invalid running mode specified (%s)' % conf.get('running_mode')
         )
@@ -265,8 +281,157 @@ def stdout_msg(message, silence=False, red=False, info=False, warn=False,
 
 # ACTIONS
 
-@pysnooper.snoop()
-def encrypt(*data, **context) -> str:
+# TODO - Add batch support
+#@pysnooper.snoop()
+def clean_exif(**context) -> str:
+    global action_result
+    failures = 0
+    if context.get('in_line'):
+        out_img_path = context['image_file']
+    else:
+        img_dir = os.path.dirname(context['image_file'])
+        img_name = os.path.basename(context['image_file'])
+        out_img_path = img_dir + '/hips.' + img_name
+    try:
+        image = Image.open(context['image_file'])
+        # Check if the image has EXIF data
+        if hasattr(image, '_getexif'):
+            exif_dict = piexif.load(image.info["exif"])
+            # Remove all EXIF data
+            exif_dict = {}
+            # Save the image without EXIF data to the specified output path
+            image.save(out_img_path, exif=piexif.dump(exif_dict))
+        # If the image doesn't have EXIF data attribute
+        else:
+            failures += 1
+            action_result['errors'].append(
+                f"Image {context['image_file']} does not have EXIF data."
+            )
+    except Exception as e:
+        failures += 1
+        action_result['errors'].append(str(e))
+    action_result.update({
+        'input': [context['image_file']],
+        'output': [out_img_path] if os.path.exists(out_img_path) else [],
+        'msg': 'OK: EXIF clean successful' if not failures \
+            else 'NOK: EXIF clean failures detected (%s)' % failures,
+        'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
+    })
+    return out_img_path if not failures else None
+
+# TODO - Add batch support
+#@pysnooper.snoop()
+def write_exif(**context) -> str:
+    global action_result
+    failures, tag_id = 0, context.get('exif_tag', piexif.ExifIFD.UserComment)
+    if context.get('in_line'):
+        out_img_path = context['image_file']
+    else:
+        img_dir = os.path.dirname(context['image_file'])
+        img_name = os.path.basename(context['image_file'])
+        out_img_path = img_dir + '/hips.' + img_name
+    try:
+        image = Image.open(context['image_file'])
+        # Check if the image has EXIF data
+        if hasattr(image, '_getexif'):
+            exif_dict = piexif.load(image.info["exif"])
+            # Set the specified tag ID with the provided value
+            exif_dict['Exif'][tag_id] = context['exif_data'].encode('utf-8')
+            # Convert the updated EXIF data back to bytes
+            exif_bytes = piexif.dump(exif_dict)
+            # Save the image with the updated EXIF data
+            image.save(out_img_path, exif=exif_bytes)
+        else:
+            failures += 1
+            action_result['errors'].append(
+                f"Image {context['image_file']} does not have EXIF data."
+            )
+    except Exception as e:
+        failures += 1
+        action_result['errors'].append(str(e))
+    action_result.update({
+        'input': [context['image_file'], f'EXIF Tag: {tag_id}'],
+        'output': [out_img_path, context['exif_data']]
+            if os.path.exists(out_img_path) else [],
+        'msg': 'OK: EXIF write successful' if not failures \
+            else 'NOK: EXIF write failures detected (%s)' % failures,
+        'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
+    })
+    return out_img_path if not failures else None
+
+# TODO - Add batch support
+#@pysnooper.snoop()
+def read_exif(**context) -> str:
+    global action_result
+    failures = 0
+    tag_id, tag_data = context.get('exif_tag', piexif.ExifIFD.UserComment), ''
+    try:
+        # Open the image using PIL
+        image = Image.open(context['image_file'])
+        # Check if the image has EXIF data
+        if hasattr(image, '_getexif'):
+            exif_dict = piexif.load(image.info["exif"])
+            # Check if the specified tag ID is present in the EXIF data
+            if tag_id in exif_dict['Exif']:
+                tag_data = exif_dict['Exif'][tag_id].decode('utf-8')
+            else:
+                failures += 1
+                action_result['errors'].append(
+                    f"Tag {tag_id} not found in the EXIF data."
+                )
+        # If the image doesn't have EXIF data attribute
+        else:
+            failures += 1
+            action_result['errors'].append(
+                f"Image {context['image_file']} does not have EXIF data."
+            )
+    except Exception as e:
+        failures += 1
+        action_result['errors'].append(str(e))
+    action_result.update({
+        'input': [context['image_file'], f'EXIF Tag: {tag_id}'],
+        'output': [tag_data] if tag_data else [],
+        'msg': 'OK: EXIF read successful' if not failures \
+            else 'NOK: EXIF read failures detected (%s)' % failures,
+        'exit': 0 if not failures else 9,
+    })
+    return tag_data if not failures else None
+
+# TODO - Add batch support
+#@pysnooper.snoop()
+def dump_exif(**context) -> dict:
+    global action_result
+    failures, exif_data = 0, {}
+    try:
+        # Open the image using PIL
+        image = Image.open(context['image_file'])
+        # Check if the image has EXIF data
+        if hasattr(image, '_getexif'):
+            exif_details = piexif.load(image.info["exif"])
+            for ifd, sub_dict in exif_details.items():
+                if not sub_dict:
+                    continue
+                for tag, value in sub_dict.items():
+                    exif_data[str(tag)] = str(value)
+        # If the image doesn't have EXIF data attribute
+        else:
+            failures += 1
+            action_result['errors'].append("The image does not have EXIF data.")
+    except Exception as e:
+        failures += 1
+        action_result['errors'].append(str(e))
+    action_result.update({
+        'input': [context['image_file']],
+        'output': [exif_data] if exif_data else [],
+        'msg': 'OK: EXIF dump successful' if not failures \
+            else 'NOK: EXIF dump failures detected (%s)' % failures,
+        'exit': 0 if not failures else 9,
+    })
+    return exif_data if not failures else None
+
+# TODO - Add batch support
+#@pysnooper.snoop()
+def encrypt(*data: List[str], **context) -> str:
     global action_result
     failures = 0
     if context.get('in_line'):
@@ -300,9 +465,10 @@ def encrypt(*data, **context) -> str:
             not failures else 'NOK: Encryption failures detected (%s)' % failures,
         'exit': 0 if os.path.exists(out_img_path) and not failures else 9,
     })
-    return out_img_path if not failures else str()
+    return out_img_path if not failures else None
 
-@pysnooper.snoop()
+# TODO - Add batch support
+#@pysnooper.snoop()
 def decrypt(**context) -> str:
     global action_result
     failures = 0
@@ -326,7 +492,7 @@ def decrypt(**context) -> str:
     if os.path.exists(revealed_file):
         content = '\n'.join(file2list(revealed_file))
         action_result['output'].append(content)
-    return context['image_file'] if not failures else str()
+    return context['image_file'] if not failures else None
 
 # FORMATTERS
 
@@ -369,22 +535,66 @@ def display_header(**context):
 
 # CREATORS
 
+#   parser.add_option(
+#       '-b', '--batch', dest='batch', action='store_true',
+#       help='Perform actions on all files in the batch directory.'
+#   )
+#   parser.add_option(
+#       '-d', '--batch-dir', dest='batch_dir', type='string',
+#       help='Specify location to patch dirs of files.'
+#   )
+#   parser.add_option(
+#       '-x', '--exif-data', dest='exif_data', type='string',
+#       help='The exif data to write. (Implies --action write-exif)'
+#   )
+#   parser.add_option(
+#       '-X', '--exif-tag', dest='exif_tag', type='string',
+#       help='The exif tag to write. (Implies --action (write-exif|read-exif))'
+#   )
+
 #@pysnooper.snoop()
 def create_command_line_parser():
     parser = optparse.OptionParser(
         format_header() + '\n[ DESCRIPTION ]: HIPSCipher Encryption/Decryption -\n\n'
-        '    [ Ex ]: Terminal based running mode\n'
+        '    [ Ex ]: Terminal based running mode with default settings\n'
         '       ~$ %prog \n\n'
         '    [ Ex ]: File based running mode decryption\n'
         '       ~$ %prog \\ \n'
         '           --action decrypt \\ \n'
-        '           --image-file target.jpg\n\n'
+        '           --image-file target.jpg \\ \n'
+        '           --key-code HIPS1234\n\n'
         '    [ Ex ]: File based running mode encryption with no STDOUT\n'
         '       ~$ %prog \\ \n'
         '           --action encrypt \\ \n'
         '           --image-file target.jpg \\ \n'
+        '           --key-code HIPS1234 \\ \n'
+        '           --cleartext-file hc_cleartext.txt \\ \n'
         '           --in-place \\ \n'
         '           --silent\n\n'
+        '    [ Ex ]: File based running mode batch encryption with STDOUT\n'
+        '       ~$ %prog \\ \n'
+        '           --action encrypt \\ \n'
+        '           --key-code HIPS1234 \\ \n'
+        '           --batch \\ \n'
+        '           --batch-dir files2encrypt \\ \n'
+        '           --cleartext-file hc_cleartext.txt\n\n'
+        '   [ Ex ]: File based EXIF dump saved to non-default report file\n'
+        '       ~$ %prog \\ \n'
+        '           --action exif-dump \\ \n'
+        '           --image-file target.jpg \\ \n'
+        '           --report \\ \n'
+        '           --report-file hc_custom.report\n\n'
+        '   [ Ex ]: File based EXIF write\n'
+        '       ~$ %prog \\ \n'
+        '           --action write-exif \\ \n'
+        '           --exif-tag OWNER \\ \n'
+        '           --exif-data #!/ \\ \n'
+        '           --image-file target.jpg\n\n'
+        '   [ Ex ]: File based EXIF tag read\n'
+        '       ~$ %prog \\ \n'
+        '           --action read-exif \\ \n'
+        '           --exif-tag 37510 \\ \n'
+        '           --image-file target.jpg\n\n'
         '   [ Ex ]: Run with context data from JSON config file\n'
         '       ~$ %prog \\ \n'
         '           --konfig-file conf/hips_cipher.conf.json\n\n'
@@ -421,37 +631,46 @@ def add_command_line_parser_options(parser):
         help='Cleartext file path for IO operations during file running mode.'
     )
     parser.add_option(
-        '-I', '--in-place', dest='in_place', action='store_true',
-        help='Modify target image in place without creating copy.'
+        '-d', '--batch-dir', dest='batch_dir', type='string',
+        help='Specify location to patch dirs of files.'
     )
-#   parser.add_option(
-#       '-b', '--batch', dest='batch', action='store_true',
-#       help='Perform actions on all files in the batch directory.'
-#   )
-#   parser.add_option(
-#       '-d', '--batch-dir', dest='batch_dir', type='string',
-#       help='Specify location to patch dirs of files.'
-#   )
-#   parser.add_option(
-#       '-x', '--exif-data', dest='exif_data', type='string',
-#       help='The exif data to write. (Implies --action write-exif)'
-#   )
-#   parser.add_option(
-#       '-X', '--exif-tag', dest='exif_tag', type='string',
-#       help='The exif tag to write. (Implies --action (write-exif|read-exif))'
-#   )
+    parser.add_option(
+        '-x', '--exif-data', dest='exif_data', type='string',
+        help='The exif data to write. (Implies --action write-exif, Default: #!/)'
+    )
+    parser.add_option(
+        '-X', '--exif-tag', dest='exif_tag', type='string',
+        help='The exif tag to write. (Implies --action (write-exif|read-exif), '
+            'Default: [37510]UserComment)'
+    )
     parser.add_option(
         '-s', '--data-src', dest='data_source', type='string',
         help='Specify if the input data source. Options: <file|terminal>, '
             'Default: file'
     )
     parser.add_option(
+        '-R', '--report-file', dest='report_file', type='string',
+        help='Specify path of report file. (Implies --report)'
+    )
+    parser.add_option(
         '-K', '--konfig-file', dest='config_file', type=str,
         help='Path to the %s configuration file.' % SCRIPT_NAME
     )
     parser.add_option(
+        '-I', '--in-place', dest='in_place', action='store_true',
+        help='Modify target image in place without creating copy.'
+    )
+    parser.add_option(
+        '-b', '--batch', dest='batch', action='store_true',
+        help='Perform actions on all files in the batch directory.'
+    )
+    parser.add_option(
         '-S', '--silent', dest='silent', action='store_true',
         help='Run with no STDOUT output. Implies a file data source.'
+    )
+    parser.add_option(
+        '-r', '--report', dest='report', action='store_true',
+        help='Save action results to report file.'
     )
     return parser
 
@@ -536,13 +755,16 @@ def init_terminal_running_mode(**conf):
             clear = clear_screen()
             display_header(**conf)
             continue
-        keycode = fetch_keycode_from_user()
-        if not keycode:
-            action_result.update({
-                'exit': 0,
-                'msg': 'Action aborted at keycode prompt'
-            })
-            break
+        elif action not in (
+                'dump-exif', 'read-exif', 'write-exif', 'cleanup', 'clean-exif'
+            ):
+            keycode = fetch_keycode_from_user()
+            if not keycode:
+                action_result.update({
+                    'exit': 0,
+                    'msg': 'Action aborted at keycode prompt'
+                })
+                break
         img_file = fetch_image_file_path_from_user()
         if not img_file:
             action_result.update({
@@ -561,6 +783,10 @@ def init_terminal_running_mode(**conf):
         handlers = {
             'encrypt': encrypt,
             'decrypt': decrypt,
+            'write-exif': write_exif,
+            'read-exif': read_exif,
+            'dump-exif': dump_exif,
+            'clean-exif': clean_exif,
         }
         if CONFIG.get('running_mode') not in handlers:
             action_result.update({
@@ -568,14 +794,18 @@ def init_terminal_running_mode(**conf):
                 'msg': 'Invalid running mode %s' % CONFIG.get('running_mode')
             })
             return action_result['exit']
+
+        # TODO - Handle batch action here
+
         if action == 'encrypt':
             action = handlers[CONFIG['running_mode']](data, **CONFIG)
         else:
             action = handlers[CONFIG['running_mode']](**CONFIG)
-        if not action:
+
+        if action is None:
             action_result.update({
                 'exit': 5,
-                'msg': 'Action %s failed' % conf.get('running_mode')
+                'msg': 'Action %s failed' % CONFIG.get('running_mode')
             })
         display = display2terminal(result=True, **CONFIG)
         if not display:
@@ -587,7 +817,7 @@ def init_terminal_running_mode(**conf):
         if not replay:
             break
         clear = clear_screen()
-        display_header(**conf)
+        display_header(**CONFIG)
     return action_result['exit']
 
 @pysnooper.snoop()
@@ -616,8 +846,12 @@ def init_file_running_mode(**conf):
             'msg': 'Invalid running mode %s' % conf.get('running_mode')
         })
         return action_result['exit']
+
+        # TODO - Handle batch action here
+
     args = [] if conf['running_mode'] != 'encrypt' else [conf['cleartext_file']]
     action = handlers[CONFIG['running_mode']](*args, **conf)
+
     if not action:
         action_result.update({
             'exit': 5,
@@ -631,7 +865,7 @@ def init_file_running_mode(**conf):
         })
     return action_result['exit']
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def init():
     global CONFIG
     global action_result
