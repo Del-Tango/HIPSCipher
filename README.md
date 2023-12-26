@@ -1,6 +1,6 @@
 **HIPSCipher - Encryption/Decryption**
 
-[ **DESCRIPTION** ]: Cipher Automation Tool for image based steganography.
+[ **DESCRIPTION** ]: Image based Steganography Automation tool for wargaming.
 
 [ **NOTE** ]: Steganography is the art and science of concealing information within seemingly neutral data in order to keep the existence of the information confidential. In the context of digital images, image-based steganography involves hiding data within image files without visibly altering the original image.
 
