@@ -34,38 +34,38 @@
            --batch-dir files2encrypt \
            --cleartext-file hc_cleartext.txt
 
-   [ Ex ]: File based EXIF dump saved to non-default report file
-       ~$ ./hips_cipher.py \
-           --action dump-exif \
-           --image-file ./dta/Regards.jpg \
-           --report \
-           --report-file hc_custom.report
+    [ Ex ]: File based EXIF dump saved to non-default report file
+        ~$ ./hips_cipher.py \
+            --action dump-exif \
+            --image-file ./dta/Regards.jpg \
+            --report \
+            --report-file hc_custom.report
 
-   [ Ex ]: File based EXIF write
-       ~$ ./hips_cipher.py \
-           --action write-exif \
-           --exif-tag 37510 \
-           --exif-data #!/ \
-           --image-file ./dta/Regards.jpg
+    [ Ex ]: File based EXIF write
+        ~$ ./hips_cipher.py \
+            --action write-exif \
+            --exif-tag 37510 \
+            --exif-data #!/ \
+            --image-file ./dta/Regards.jpg
 
-   [ Ex ]: File based EXIF tag read
-       ~$ ./hips_cipher.py \
-           --action read-exif \
-           --exif-tag 37510 \
-           --image-file ./dta/Regards.jpg
+    [ Ex ]: File based EXIF tag read
+        ~$ ./hips_cipher.py \
+            --action read-exif \
+            --exif-tag 37510 \
+            --image-file ./dta/Regards.jpg
 
-   [ Ex ]: File based EXIF cleanup
-       ~$ ./hips_cipher.py \
-           --action clean-exif \
-           --image-file ./dta/Regards.jpg
+    [ Ex ]: File based EXIF cleanup
+        ~$ ./hips_cipher.py \
+            --action clean-exif \
+            --image-file ./dta/Regards.jpg
 
-   [ Ex ]: Run with context data from JSON config file
-       ~$ ./hips_cipher.py \
-           --konfig-file conf/hips_cipher.conf.json
+    [ Ex ]: Run with context data from JSON config file
+        ~$ ./hips_cipher.py \
+            --konfig-file conf/hips_cipher.conf.json
 
-   [ Ex ]: Cleanup all generated files from disk
-       ~$ ./hips_cipher.py \
-           --action cleanup
+    [ Ex ]: Cleanup all generated files from disk
+        ~$ ./hips_cipher.py \
+            --action cleanup
 
 [ **EXAMPLES** ]: Building consumable artifact
 
