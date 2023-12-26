@@ -99,6 +99,40 @@ def fetch_data_from_user(prompt='Data'):
     print()
     return data
 
+#@pysnooper.snoop()
+def fetch_exif_tag_from_user(prompt='ExifTag'):
+    global CONFIG
+    stdout_msg(
+        'Specify EXIF tag ID or (.back)...', info=True,
+        silence=CONFIG.get('silent')
+    )
+    if CONFIG.get('exif_tag'):
+        prompt = prompt + '[' + str(CONFIG['exif_tag']) + ']> '
+        stdout_msg(
+            'Leave blank to keep current '\
+            '(%s)' % CONFIG['exif_tag'], info=True, silence=CONFIG.get('silent')
+        )
+    while True:
+        tag_id = input(prompt)
+        if not tag_id:
+            if not CONFIG.get('exif_tag'):
+                continue
+            tag_id = CONFIG.get('exif_tag')
+        if tag_id == '.back':
+            return
+        try:
+            tag_id = int(tag_id)
+        except Exception as e:
+            stdout_msg(
+                'EXIF tag must be a number, not (%s)' % (tag_id), warn=True,
+                silence=CONFIG.get('silent')
+            )
+            continue
+        CONFIG.update({'exif_tag': tag_id})
+        break
+    print()
+    return tag_id
+
 def fetch_image_file_path_from_user(prompt='IMGPath'):
     global CONFIG
     stdout_msg(
@@ -759,12 +793,22 @@ def init_terminal_running_mode(**conf):
                 'msg': 'Action aborted at image file input prompt'
             })
             break
-        if action == 'encrypt':
+        if action in ('encrypt', 'write-exif'):
             data = fetch_data_from_user()
             if not data:
                 action_result.update({
                     'exit': 0,
                     'msg': 'Action aborted at data input prompt'
+                })
+                break
+            if action == 'write-exif':
+                CONFIG['exif_data'] = data
+        if action in ('write-exif', 'read-exif'):
+            exif_tag = fetch_exif_tag_from_user()
+            if not exif_tag:
+                action_result.update({
+                    'exit': 0,
+                    'msg': 'Action aborted at EXIF tag input prompt'
                 })
                 break
         handlers = {
