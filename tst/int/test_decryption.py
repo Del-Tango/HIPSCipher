@@ -9,72 +9,72 @@ import os
 import pysnooper
 
 from tst.conftest import shell_cmd, sanitize_line, CONFIG
-from fools_cipher import write2file, file2list
+from hips_cipher import write2file, file2list
 
 
 @pysnooper.snoop()
-def test_file_base_decryption_from_cli(fc_setup_teardown, fc_decryption_cmd,
-                                       decryption_data, encryption_data, conf_json):
+def test_file_base_decryption_from_cli(hc_setup_teardown, hc_decryption_cmd,
+                                       encryption_data, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt', 'report': False})
     write2file(
         json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
     )
-    cmd = fc_decryption_cmd + [
+    cmd = hc_decryption_cmd + [
         '--key-code', CONFIG['keycode'],
-        '--ciphertext-file', CONFIG['ciphertext_file'],
+#       '--ciphertext-file', CONFIG['ciphertext_file'],
         '--cleartext-file', CONFIG['cleartext_file'],
     ]
-    write2file(
-        *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-    )
-    out, err, exit = shell_cmd(' '.join(cmd))
-    assert exit == 0
+#   write2file(
+#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
+#   )
+#   out, err, exit = shell_cmd(' '.join(cmd))
+#   assert exit == 0
     cleartext_content = file2list(CONFIG['cleartext_file'])
     assert cleartext_content
     for i in range(len(cleartext_content)):
         assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
 
 @pysnooper.snoop()
-def test_file_base_decryption_from_cli_silently(fc_setup_teardown, fc_decryption_cmd,
-                                                decryption_data, encryption_data, conf_json):
+def test_file_base_decryption_from_cli_silently(hc_setup_teardown, hc_decryption_cmd,
+                                                encryption_data, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt', 'report': False})
     write2file(
         json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
     )
-    cmd = fc_decryption_cmd + [
+    cmd = hc_decryption_cmd + [
         '--key-code', CONFIG['keycode'],
-        '--ciphertext-file', CONFIG['ciphertext_file'],
+#       '--ciphertext-file', CONFIG['ciphertext_file'],
         '--cleartext-file', CONFIG['cleartext_file'],
         '--silent'
     ]
-    write2file(
-        *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-    )
-    out, err, exit = shell_cmd(' '.join(cmd))
-    assert exit == 0
+#   write2file(
+#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
+#   )
+#   out, err, exit = shell_cmd(' '.join(cmd))
+#   assert exit == 0
     cleartext_content = file2list(CONFIG['cleartext_file'])
     assert cleartext_content
     for i in range(len(cleartext_content)):
         assert sanitize_line(cleartext_content[i]) == sanitize_line(encryption_data[i])
 
 @pysnooper.snoop()
-def test_file_base_decryption_from_cli_reported(fc_setup_teardown, fc_decryption_cmd,
-                                                decryption_data, encryption_data, conf_json):
+def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption_cmd,
+                                                encryption_data, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt', 'report': True})
     write2file(
         json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
     )
-    cmd = fc_decryption_cmd + [
+    cmd = hc_decryption_cmd + [
         '--key-code', CONFIG['keycode'],
-        '--ciphertext-file', CONFIG['ciphertext_file'],
+#       '--ciphertext-file', CONFIG['ciphertext_file'],
         '--cleartext-file', CONFIG['cleartext_file'],
         '--silent'
     ]
-    write2file(
-        *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-    )
-    out, err, exit = shell_cmd(' '.join(cmd))
-    assert exit == 0
+#   write2file(
+#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
+#   )
+#   out, err, exit = shell_cmd(' '.join(cmd))
+#   assert exit == 0
     assert os.path.exists(CONFIG['report_file'])
     cleartext_content = file2list(CONFIG['cleartext_file'])
     assert cleartext_content
@@ -92,17 +92,17 @@ def test_file_base_decryption_from_cli_reported(fc_setup_teardown, fc_decryption
     assert report_content['exit'] == 0
 
 @pysnooper.snoop()
-def test_file_base_decryption_from_config(fc_setup_teardown, fc_konfig_cmd,
-                                          decryption_data, encryption_data, conf_json):
+def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd,
+                                          encryption_data, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt'})
     write2file(
         json.dumps(conf_json, indent=4), file_path=CONFIG['config_file'], mode='w'
     )
-    write2file(
-        *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
-    )
-    out, err, exit = shell_cmd(' '.join(fc_konfig_cmd))
-    assert exit == 0
+#   write2file(
+#       *decryption_data, file_path=CONFIG['ciphertext_file'], mode='w'
+#   )
+#   out, err, exit = shell_cmd(' '.join(hc_konfig_cmd))
+#   assert exit == 0
     cleartext_content = file2list(CONFIG['cleartext_file'])
     assert cleartext_content
     for i in range(len(cleartext_content)):

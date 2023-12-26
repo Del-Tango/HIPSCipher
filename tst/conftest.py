@@ -8,23 +8,30 @@ import os
 import json
 
 from subprocess import Popen, PIPE
-from fools_cipher import load_config
+from hips_cipher import load_config, shell_cmd
 
 CURRENT_DIR = os.getcwd()
 PYTHON3 = './.venv/bin/python3'
+
 CONFIG = {
-    'config_file': '%s/conf/fools_cipher.conf.json' % CURRENT_DIR,
+    'config_file': '%s/conf/hips_cipher.conf.json' % CURRENT_DIR,
     'current_dir': CURRENT_DIR,
-    'cleartext_file': '%s/fc_clear.txt' % CURRENT_DIR,
-    'ciphertext_file': '%s/fc_cipher.txt' % CURRENT_DIR,
-    'report_file': '%s/fc_report.dump' % CURRENT_DIR,
-    'running_mode': 'decrypt',
-    'data_source': 'file',
-    'keycode': '01234',
-    'cleanup': [],
+    'batch_dir': '%s/batch' % CURRENT_DIR,
+    'tmp_file': '%s/hc_tmp.txt' % CURRENT_DIR,
+    'report_file': '%s/hc_report.dump' % CURRENT_DIR,
+    'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
+    'cleartext_file': '%s/hc_clear.txt' % CURRENT_DIR,
+    'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
+    'data_source': 'terminal',                                                  # <file|terminal>
+    'exif_data': '#!/',
+    'exif_tag': 37510,
+    'keycode': 'HIPS',                                                          # Encryption password
+    'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
-        'cleartext_file', 'ciphertext_file', 'report_file'
+        'tmp_file', 'cleartext_file', 'report_file'
     ],
+    'in_place': True,
+    'batch': False,
     'report': True,
     'silent': False,
 }
@@ -32,12 +39,8 @@ CONFIG = {
 # DATA
 
 @pytest.fixture
-def decryption_data():
-    return ['aA_12!@#_saZ_\n', 'aA_12!@#_saZ_\n']
-
-@pytest.fixture
 def encryption_data():
-    return ['0;104;53;54;62;77;141;18;0;129\n', '0;104;53;54;62;77;141;18;0;129\n']
+    return ['FirstLine\n', 'LastLine\n']
 
 @pytest.fixture
 def conf_json():
@@ -48,71 +51,104 @@ def conf_json():
 def sanitize_line(line_data):
     return line_data.rstrip('\n').rstrip(',')
 
-def shell_cmd(command, user=None):
-    if user:
-        command = "su {} -c \'{}\'".format(user, command)
-    process = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
-    output, errors = process.communicate()
-    return str(output).rstrip('\n'), str(errors).rstrip('\n'), process.returncode
-
 # COMMANDS
 
 @pytest.fixture
-def fc_encryption_cmd(*args, **context):
+def hc_dump_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './fools_cipher.py', '--action', 'encrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'dump-exif']
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './fools_cipher.py', '-a', 'encrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'dump-exif']
     if args:
         cmd = cmd + list(args)
     return cmd
 
 @pytest.fixture
-def fc_decryption_cmd(*args, **context):
+def hc_write_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './fools_cipher.py', '--action', 'decrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'write-exif']
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './fools_cipher.py', '-a', 'decrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'write-exif']
     if args:
         cmd = cmd + list(args)
     return cmd
 
 @pytest.fixture
-def fc_cleanup_cmd(*args, **context):
+def hc_read_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './fools_cipher.py', '--action', 'cleanup']
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'read-exif']
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './fools_cipher.py', '-a', 'cleanup']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'read-exif']
     if args:
         cmd = cmd + list(args)
     return cmd
 
 @pytest.fixture
-def fc_help_cmd(*args, **context):
+def hc_clean_exif_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './fools_cipher.py', '--help']
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'clean-exif']
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './fools_cipher.py', '-h']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'clean-exif']
     if args:
         cmd = cmd + list(args)
     return cmd
 
 @pytest.fixture
-def fc_util_help_cmd(*args, **context):
+def hc_encryption_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = ['foolscipher', '--help']
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'encrypt']
     elif context['arg'].lower() == 'short':
-        cmd = ['foolscipher', '-h']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'encrypt']
     if args:
         cmd = cmd + list(args)
     return cmd
 
 @pytest.fixture
-def fc_konfig_cmd(*args, **context):
+def hc_decryption_cmd(*args, **context):
     if not context.get('arg') or context['arg'].lower() == 'long':
-        cmd = [PYTHON3, './fools_cipher.py', '--konfig-file', CONFIG['config_file']]
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'decrypt']
     elif context['arg'].lower() == 'short':
-        cmd = [PYTHON3, './fools_cipher.py', '-K', 'encrypt']
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'decrypt']
+    if args:
+        cmd = cmd + list(args)
+    return cmd
+
+@pytest.fixture
+def hc_cleanup_cmd(*args, **context):
+    if not context.get('arg') or context['arg'].lower() == 'long':
+        cmd = [PYTHON3, './hips_cipher.py', '--action', 'cleanup']
+    elif context['arg'].lower() == 'short':
+        cmd = [PYTHON3, './hips_cipher.py', '-a', 'cleanup']
+    if args:
+        cmd = cmd + list(args)
+    return cmd
+
+@pytest.fixture
+def hc_help_cmd(*args, **context):
+    if not context.get('arg') or context['arg'].lower() == 'long':
+        cmd = [PYTHON3, './hips_cipher.py', '--help']
+    elif context['arg'].lower() == 'short':
+        cmd = [PYTHON3, './hips_cipher.py', '-h']
+    if args:
+        cmd = cmd + list(args)
+    return cmd
+
+@pytest.fixture
+def hc_util_help_cmd(*args, **context):
+    if not context.get('arg') or context['arg'].lower() == 'long':
+        cmd = ['hipscipher', '--help']
+    elif context['arg'].lower() == 'short':
+        cmd = ['hipscipher', '-h']
+    if args:
+        cmd = cmd + list(args)
+    return cmd
+
+@pytest.fixture
+def hc_konfig_cmd(*args, **context):
+    if not context.get('arg') or context['arg'].lower() == 'long':
+        cmd = [PYTHON3, './hips_cipher.py', '--konfig-file', CONFIG['config_file']]
+    elif context['arg'].lower() == 'short':
+        cmd = [PYTHON3, './hips_cipher.py', '-K',  CONFIG['config_file']]
     if args:
         cmd = cmd + list(args)
     return cmd
@@ -154,12 +190,12 @@ def bw_setup_cmd(*args, **context):
 # SETUP/TEARDOWN
 
 @pytest.fixture
-def fc_setup_teardown(bw_setup_cmd, bw_build_cmd, bw_install_cmd, fc_cleanup_cmd):
+def hc_setup_teardown(bw_setup_cmd, bw_build_cmd, bw_install_cmd, hc_cleanup_cmd):
     out, err, exit = shell_cmd(' '.join(bw_setup_cmd))
     out, err, exit = shell_cmd(' '.join(bw_build_cmd))
     out, err, exit = shell_cmd(' '.join(bw_install_cmd))
     yield exit
-    out, err, exit = shell_cmd(' '.join(fc_cleanup_cmd))
+    out, err, exit = shell_cmd(' '.join(hc_cleanup_cmd))
 
 @pytest.fixture
 def bw_setup_teardown(bw_setup_cmd, bw_cleanup_cmd):

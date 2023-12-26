@@ -8,11 +8,11 @@ import os
 import pysnooper
 
 from tst.conftest import sanitize_line
-from fools_cipher import *
+from hips_cipher import *
 
 
 #@pysnooper.snoop()
-def test_decryption(fc_setup_teardown, decryption_data, encryption_data, conf_json):
+def test_decryption(hc_setup_teardown, decryption_data, encryption_data, conf_json):
     lock_n_load = setup(**conf_json)
     assert lock_n_load
     check = check_preconditions(**conf_json)
