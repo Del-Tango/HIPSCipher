@@ -7,18 +7,26 @@ import pytest
 import os
 import pysnooper
 
-from tst.conftest import sanitize_line
 from hips_cipher import *
 
 
 #@pysnooper.snoop()
 def test_encryption(hc_setup_teardown, encryption_data, conf_json):
+    global action_result
+    action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
+
+
+    conf_json.update({'running_mode': 'encrypt'})
+
+    print('[ DEBUG ]: conf_json', conf_json)
+
+
     lock_n_load = setup(**conf_json)
     assert lock_n_load
-    check = check_preconditions(**conf_json)
-    assert check
     with open(conf_json['cleartext_file'], 'w') as fl:
         fl.write(''.join(encryption_data))
+    check = check_preconditions(**conf_json)
+    assert check
     result = encrypt(conf_json['cleartext_file'], **conf_json)
     assert result
     assert os.path.exists(result)

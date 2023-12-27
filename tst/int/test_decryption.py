@@ -97,7 +97,7 @@ def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption
 
 @pysnooper.snoop()
 def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd, conf_json): #decryption_data,
-    conf_json.update({'running_mode': 'decrypt'})
+    conf_json.update({'running_mode': 'decrypt', 'report': True})
     if os.path.exists(conf_json['cleartext_file']):
         os.remove(conf_json['cleartext_file'])
     img_dir = os.path.dirname(conf_json['image_file'])

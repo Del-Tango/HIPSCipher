@@ -12,6 +12,11 @@ from hips_cipher import *
 
 #@pysnooper.snoop()
 def test_decryption(hc_setup_teardown, conf_json):
+    conf_json.update({'running_mode': 'decrypt'})
+    action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
+    print('[ DEBUG ]: conf_json', conf_json)
+
+
     lock_n_load = setup(**conf_json)
     assert lock_n_load
     if os.path.exists(conf_json['cleartext_file']):

@@ -10,6 +10,7 @@ import glob
 import json
 import pysnooper
 import piexif
+import shutil
 
 from typing import List
 from subprocess import Popen, PIPE
@@ -35,7 +36,7 @@ CONFIG = {
     'keycode': 'HIPS',                                                          # Encryption password
     'cleanup': ['tmp_file'],                                                    # CONFIG keys containing file paths
     'full_cleanup': [
-        'tmp_file', 'cleartext_file', 'report_file'
+        'tmp_file', 'cleartext_file', 'report_file', 'batch_dir'
     ],
     'in_place': False,
     'batch': False,
@@ -728,7 +729,7 @@ def report_action_result(result, **context):
 
 # CLEANERS
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def cleanup(full=False, **context):
     global CONFIG
     global action_result
@@ -740,7 +741,10 @@ def cleanup(full=False, **context):
         for file_path in to_remove:
             if not os.path.exists(file_path):
                 continue
-            os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+            else:
+                os.remove(file_path)
         if full:
             CONFIG.update({'report': False})
     except OSError as e:
@@ -753,20 +757,20 @@ def cleanup(full=False, **context):
 
 # SETUP
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def setup(**context):
     global action_result
     file_paths = []
     dir_paths = ['batch_dir']
     for fl_label in file_paths:
-        if fl_label not in context or os.path.exists(context[fl_label]):
+        if fl_label not in context or os.path.isfile(context[fl_label]):
             continue
         try:
             create = write2file('', mode='a', file_path=context[fl_label])
         except Exception as e:
             action_result['errors'].append(str(e))
     for dir_label in dir_paths:
-        if dir_label not in context or os.path.exists(context[dir_label]):
+        if dir_label not in context or os.path.isdir(context[dir_label]):
             continue
         try:
             create = os.makedirs(context[dir_label])
@@ -779,6 +783,10 @@ def setup(**context):
                 + ','.join(action_result['errors']),
             'exit': 11,
         })
+
+    # TODO - Remove
+    print('[ DEBUG ]: action_result -', action_result)
+
     return True if not action_result['errors'] else False
 
 # INIT

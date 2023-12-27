@@ -84,7 +84,7 @@ def test_file_base_encryption_from_cli_reported(hc_setup_teardown, hc_encryption
     assert isinstance(report_content['exit'], int)
     assert report_content['exit'] == 0
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def test_file_base_encryption_from_config(hc_setup_teardown, hc_konfig_cmd,
                                         encryption_data, conf_json):
     conf_json.update({'running_mode': 'encrypt'})
@@ -100,3 +100,4 @@ def test_file_base_encryption_from_config(hc_setup_teardown, hc_konfig_cmd,
     img_fl = os.path.basename(conf_json['image_file'])
     crypted_img = img_dir + '/hips.' + img_fl
     assert os.path.exists(crypted_img)
+
