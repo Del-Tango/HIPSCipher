@@ -37,7 +37,7 @@ CONFIG = {
     'full_cleanup': [
         'tmp_file', 'cleartext_file', 'report_file'
     ],
-    'in_place': True,
+    'in_place': False,
     'batch': False,
     'report': True,
     'silent': False,
@@ -203,7 +203,7 @@ def fetch_keycode_from_user(prompt='KeyCode'):
 
 # CHECKERS
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def check_preconditions(**conf):
     errors = []
     file_paths = ['image_file']
@@ -331,7 +331,7 @@ def stdout_msg(message, silence=False, red=False, info=False, warn=False,
 def clean_exif(**context) -> str:
     global action_result
     failures = 0
-    if context.get('in_line'):
+    if context.get('in_place'):
         out_img_path = context['image_file']
     else:
         img_dir = os.path.dirname(context['image_file'])
@@ -369,7 +369,7 @@ def clean_exif(**context) -> str:
 def write_exif(**context) -> str:
     global action_result
     failures, tag_id = 0, int(context.get('exif_tag', piexif.ExifIFD.UserComment))
-    if context.get('in_line'):
+    if context.get('in_place'):
         out_img_path = context['image_file']
     else:
         img_dir = os.path.dirname(context['image_file'])
@@ -378,19 +378,23 @@ def write_exif(**context) -> str:
     try:
         image = Image.open(context['image_file'])
         # Check if the image has EXIF data
-        if hasattr(image, '_getexif'):
+        if hasattr(image, '_getexif') and image.info.get('exif'):
             exif_dict = piexif.load(image.info["exif"])
             # Set the specified tag ID with the provided value
             exif_dict['Exif'][tag_id] = context['exif_data'].encode('utf-8')
             # Convert the updated EXIF data back to bytes
-            exif_bytes = piexif.dump(exif_dict)
-            # Save the image with the updated EXIF data
-            image.save(out_img_path, exif=exif_bytes)
+#           exif_bytes = piexif.dump(exif_dict)
+#           # Save the image with the updated EXIF data
+#           image.save(out_img_path, exif=exif_bytes)
         else:
-            failures += 1
-            action_result['errors'].append(
-                f"Image {context['image_file']} does not have EXIF data."
-            )
+            exif_dict = {'Exif': {tag_id: context['exif_data'].encode('utf-8')}}
+#           failures += 1
+#           action_result['errors'].append(
+#               f"Image {context['image_file']} does not have EXIF data."
+#           )
+        exif_bytes = piexif.dump(exif_dict)
+        # Save the image with the updated EXIF data
+        image.save(out_img_path, exif=exif_bytes)
     except Exception as e:
         failures += 1
         action_result['errors'].append(str(e))
@@ -474,16 +478,18 @@ def dump_exif(**context) -> dict:
     })
     return exif_data if not failures else None
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def encrypt(*data: List[str], **context) -> str:
     global action_result
     failures = 0
-    if context.get('in_line'):
+    if context.get('in_place'):
         out_img_path = context['image_file']
     else:
         img_dir = os.path.dirname(context['image_file'])
         img_name = os.path.basename(context['image_file'])
         out_img_path = img_dir + '/hips.' + img_name
+        if os.path.exists(out_img_path):
+            os.remove(out_img_path)
     # If data is not a file that exists, it will be written to tmp_file
     if not os.path.exists(data[0]):
         with open(context['tmp_file'], 'w') as fl:
@@ -491,8 +497,6 @@ def encrypt(*data: List[str], **context) -> str:
         secret_file = context['tmp_file']
     else:
         secret_file = data[0]
-    if os.path.exists(out_img_path):
-        os.remove(out_img_path)
     stdout, stderr, exit = shell_cmd(
         'steghide embed -ef %s -cf %s -sf %s -p %s' % (
             secret_file, context['image_file'], out_img_path, context['keycode']
@@ -515,9 +519,6 @@ def encrypt(*data: List[str], **context) -> str:
 def decrypt(**context) -> str:
     global action_result
     failures = 0
-
-    # TODO - FIX ME
-
     stdout, stderr, exit = shell_cmd(
         'steghide extract -sf %s -p %s' % (
             context['image_file'], context['keycode']
@@ -752,7 +753,7 @@ def cleanup(full=False, **context):
 
 # SETUP
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def setup(**context):
     global action_result
     file_paths = []
@@ -923,7 +924,7 @@ def init_file_running_mode(**conf):
         })
     return action_result['exit']
 
-#@pysnooper.snoop()
+@pysnooper.snoop()
 def init():
     global CONFIG
     global action_result

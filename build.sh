@@ -24,6 +24,7 @@ DEPENDENCIES=('python3' 'python3-pip', 'python3-venv', 'steghide')
 DISTRIBUTION_DIR='./dist'
 VENV_DIR='./.venv'
 CONF_DIR='./conf'
+BATCH_DIR='./batch'
 REQUIREMENTS_FILE='./requirements.txt'
 PACKAGE_NAME='hipscipher'
 BUILD_DIRS=('_build/' "${DISTRIBUTION_DIR}" "${PACKAGE_NAME}.egg-info/" "${PACKAGE_NAME}")
@@ -160,8 +161,12 @@ function cleanup() {
         local FAILURES=$((FAILURES + 1))
     fi
     echo "[ ... ]: Package directory"
-    rm -rf "${PACKAGE_NAME}"
     if ! rm -rf "${PACKAGE_NAME}"; then
+        local FAILURES=$((FAILURES + 1))
+    fi
+
+    echo "[ ... ]: Batch directory"
+    if ! rm -rf "${BATCH_DIR}"; then
         local FAILURES=$((FAILURES + 1))
     fi
     echo "[ ... ]: Python package"
