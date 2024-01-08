@@ -12,7 +12,7 @@ from tst.conftest import shell_cmd
 from hips_cipher import write2file, file2list, cleanup
 
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_file_base_decryption_from_cli(hc_setup_teardown, hc_decryption_cmd,
         hc_encryption_cmd, encryption_data, conf_json):
     conf_json.update({'running_mode': 'decrypt', 'report': False})
@@ -38,7 +38,6 @@ def test_file_base_decryption_from_cli(hc_setup_teardown, hc_decryption_cmd,
     ]
     if os.path.exists(conf_json['cleartext_file']):
         os.remove(conf_json['cleartext_file'])
-    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
     out, err, exit = shell_cmd(' '.join(cmd))
     assert exit == 0
     cleartext_content = file2list(conf_json['cleartext_file'])
@@ -58,7 +57,6 @@ def test_file_base_decryption_from_cli_silently(hc_setup_teardown, hc_decryption
         '--key-code', conf_json['keycode'],
         '--silent'
     ]
-    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
     out, err, exit = shell_cmd(' '.join(cmd))
     assert exit == 0
     cleartext_content = file2list(conf_json['cleartext_file'])
@@ -78,7 +76,6 @@ def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption
         '--key-code', conf_json['keycode'],
         '--silent'
     ]
-    print('[ DEBUG ]: Running CMD -', ' '.join(cmd))
     out, err, exit = shell_cmd(' '.join(cmd))
     assert exit == 0
     assert os.path.exists(conf_json['report_file'])
@@ -95,7 +92,7 @@ def test_file_base_decryption_from_cli_reported(hc_setup_teardown, hc_decryption
     assert isinstance(report_content['exit'], int)
     assert report_content['exit'] == 0
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd, conf_json): #decryption_data,
     conf_json.update({'running_mode': 'decrypt', 'report': True})
     if os.path.exists(conf_json['cleartext_file']):
@@ -107,7 +104,6 @@ def test_file_base_decryption_from_config(hc_setup_teardown, hc_konfig_cmd, conf
     write2file(
         json.dumps(conf_json, indent=4), file_path=conf_json['config_file'], mode='w'
     )
-    print('[ DEBUG ]: Running CMD -', ' '.join(hc_konfig_cmd))
     out, err, exit = shell_cmd(' '.join(hc_konfig_cmd))
     assert exit == 0
     cleartext_content = file2list(conf_json['cleartext_file'])

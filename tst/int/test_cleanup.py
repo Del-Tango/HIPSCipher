@@ -9,7 +9,7 @@ import pysnooper
 from tst.conftest import shell_cmd
 
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_cleanup(bw_setup_cmd, bw_build_cmd, bw_install_cmd, bw_cleanup_cmd, hc_cleanup_cmd):
     out, err, exit = shell_cmd(' '.join(bw_setup_cmd))
     assert exit == 0
@@ -17,7 +17,7 @@ def test_cleanup(bw_setup_cmd, bw_build_cmd, bw_install_cmd, bw_cleanup_cmd, hc_
     assert exit == 0
     out, err, exit = shell_cmd(' '.join(bw_install_cmd))
     assert exit == 0
-#   out, err, exit = shell_cmd(' '.join(bw_cleanup_cmd))
-#   assert exit == 0
+    out, err, exit = shell_cmd(' '.join(bw_cleanup_cmd))
+    assert exit == 0
     out, err, exit = shell_cmd(' '.join(hc_cleanup_cmd))
     assert exit == 0

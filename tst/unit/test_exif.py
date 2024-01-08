@@ -10,7 +10,7 @@ import pysnooper
 from hips_cipher import *
 
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_exif_dump(hc_setup_teardown, conf_json):
     global action_result
     action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
@@ -22,7 +22,7 @@ def test_exif_dump(hc_setup_teardown, conf_json):
     result = dump_exif(**conf_json)
     assert result
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_exif_write(hc_setup_teardown, conf_json):
     global action_result
     action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
@@ -36,7 +36,7 @@ def test_exif_write(hc_setup_teardown, conf_json):
     assert os.path.exists(result)
     os.remove(result)
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_exif_read(hc_setup_teardown, conf_json):
     global action_result
     action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
@@ -57,7 +57,7 @@ def test_exif_read(hc_setup_teardown, conf_json):
     result = read_exif(**conf_json)
     assert result
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_exif_clean(hc_setup_teardown, conf_json):
     global action_result
     action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
