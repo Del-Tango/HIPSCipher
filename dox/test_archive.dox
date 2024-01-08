@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Excellent Regards, the Alveare Solutions #!/Society -x
+#
+# Build WizZard
+
+cat <<EOF
+
+~$ ./build.sh --test
+  _____________________________________________________________________________
+
+    *                          *  Build WizZard  *                          *
+  ___________________________________________________v1.0SpeedBall_____________
+              Excellent Regards, the Alveare Solutions #!/Society -x
+
+=== test session starts ===
+platform linux -- Python 3.11.6, pytest-7.4.3, pluggy-1.3.0 -- /home/REDACTED/HIPSCipher/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/REDACTED/HIPSCipher
+collected 23 items
+
+tst/int/test_build.py::test_build PASSED                                          [  4%]
+tst/int/test_cleanup.py::test_cleanup PASSED                                      [  8%]
+tst/int/test_decryption.py::test_file_base_decryption_from_cli PASSED             [ 13%]
+tst/int/test_decryption.py::test_file_base_decryption_from_cli_silently PASSED    [ 17%]
+tst/int/test_decryption.py::test_file_base_decryption_from_cli_reported PASSED    [ 21%]
+tst/int/test_decryption.py::test_file_base_decryption_from_config PASSED          [ 26%]
+tst/int/test_encryption.py::test_file_base_encryption_from_cli PASSED             [ 30%]
+tst/int/test_encryption.py::test_file_base_encryption_from_cli_silently PASSED    [ 34%]
+tst/int/test_encryption.py::test_file_base_encryption_from_cli_reported PASSED    [ 39%]
+tst/int/test_encryption.py::test_file_base_encryption_from_config PASSED          [ 43%]
+tst/int/test_exif.py::test_exif_dump PASSED                                       [ 47%]
+tst/int/test_exif.py::test_exif_write PASSED                                      [ 52%]
+tst/int/test_exif.py::test_exif_read PASSED                                       [ 56%]
+tst/int/test_exif.py::test_exif_clean PASSED                                      [ 60%]
+tst/int/test_install.py::test_install PASSED                                      [ 65%]
+tst/unit/test_cleanup.py::test_cleanup PASSED                                     [ 69%]
+tst/unit/test_cleanup.py::test_full_cleanup PASSED                                [ 73%]
+tst/unit/test_decryption.py::test_decryption PASSED                               [ 78%]
+tst/unit/test_encryption.py::test_encryption PASSED                               [ 82%]
+tst/unit/test_exif.py::test_exif_dump PASSED                                      [ 86%]
+tst/unit/test_exif.py::test_exif_write PASSED                                     [ 91%]
+tst/unit/test_exif.py::test_exif_read PASSED                                      [ 95%]
+tst/unit/test_exif.py::test_exif_clean PASSED                                     [100%]
+
+=== 23 passed in 89.22s (0:01:29) ===
+
+EOF
