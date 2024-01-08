@@ -559,13 +559,16 @@ def display2terminal(*lines, result=False, **context):
     if (not lines and not result) or context.get('silent'):
         return True
     if result:
+        result2display = action_result.copy()
+        if isinstance(action_result.get('errors'), list) and not action_result['errors']:
+            del result2display['errors']
         stdout_msg(
             '[ %s ]: %s Action Result' % (
                 CONFIG.get('running_mode', '').upper(), SCRIPT_NAME
             ), silence=context.get('silent')
         )
         stdout_msg(
-            json.dumps(action_result, indent=4), silence=context.get('silent')
+            json.dumps(result2display, indent=4), silence=context.get('silent')
         )
     else:
         stdout_msg('\n'.join(lines) + '\n', silence=context.get('silent'))
