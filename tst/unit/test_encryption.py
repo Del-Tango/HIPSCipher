@@ -13,14 +13,10 @@ from hips_cipher import *
 #@pysnooper.snoop()
 def test_encryption(hc_setup_teardown, encryption_data, conf_json):
     global action_result
-    action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
-
-
-    conf_json.update({'running_mode': 'encrypt'})
-
-    print('[ DEBUG ]: conf_json', conf_json)
-
-
+    action_result = {
+        'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []
+    }
+    conf_json.update({'running_mode': 'encrypt', 'data_source': 'file'})
     lock_n_load = setup(**conf_json)
     assert lock_n_load
     with open(conf_json['cleartext_file'], 'w') as fl:
@@ -30,4 +26,6 @@ def test_encryption(hc_setup_teardown, encryption_data, conf_json):
     result = encrypt(conf_json['cleartext_file'], **conf_json)
     assert result
     assert os.path.exists(result)
+    os.remove(result)
+    os.remove(conf_json['cleartext_file'])
 

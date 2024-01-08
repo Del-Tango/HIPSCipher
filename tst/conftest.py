@@ -21,7 +21,7 @@ CONFIG = {
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
     'cleartext_file': '%s/hc_clear.txt' % CURRENT_DIR,
-    'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
+    'running_mode': 'decrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
     'data_source': 'file',                                                      # <file|terminal>
     'exif_data': 'Regards',
     'exif_tag': 37510,
@@ -30,7 +30,7 @@ CONFIG = {
     'full_cleanup': [
         'tmp_file', 'cleartext_file', 'report_file'
     ],
-    'in_place': True,
+    'in_place': False,
     'batch': False,
     'report': True,
     'silent': False,

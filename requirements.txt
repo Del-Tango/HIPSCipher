@@ -1,7 +1,6 @@
 setuptools
 pysnooper
-subprocess
 piexif
-PIL
+pillow
 pytest
-shutil
+

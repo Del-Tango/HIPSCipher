@@ -11,7 +11,7 @@ from tst.conftest import shell_cmd
 from hips_cipher import *
 
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_cleanup(hc_setup_teardown, hc_encryption_cmd, encryption_data, conf_json):
     global action_result
     action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
@@ -30,8 +30,12 @@ def test_cleanup(hc_setup_teardown, hc_encryption_cmd, encryption_data, conf_jso
     assert result
     for label in conf_json['cleanup']:
         assert not os.path.exists(conf_json[label])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    os.remove(crypted_img)
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def test_full_cleanup(hc_setup_teardown, hc_encryption_cmd, encryption_data, conf_json):
     conf_json.update({'running_mode': 'cleanup', 'report': True})
     create_cleartext = write2file(
@@ -48,3 +52,7 @@ def test_full_cleanup(hc_setup_teardown, hc_encryption_cmd, encryption_data, con
     assert result
     for label in conf_json['full_cleanup']:
         assert not os.path.exists(conf_json[label])
+    img_dir = os.path.dirname(conf_json['image_file'])
+    img_fl = os.path.basename(conf_json['image_file'])
+    crypted_img = img_dir + '/hips.' + img_fl
+    os.remove(crypted_img)

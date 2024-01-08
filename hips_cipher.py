@@ -29,7 +29,7 @@ CONFIG = {
     'report_file': '%s/hc_report.dump' % CURRENT_DIR,
     'image_file': '%s/dta/Regards.jpg' % CURRENT_DIR,
     'cleartext_file': '%s/hc_clear.txt' % CURRENT_DIR,
-    'running_mode': 'encrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
+    'running_mode': 'decrypt',                                                  # <decrypt|encrypt|write-exif|read-exif|dump-exif|clean-exif>
     'data_source': 'terminal',                                                  # <file|terminal>
     'exif_data': '#!/',
     'exif_tag': piexif.ExifIFD.UserComment,
@@ -204,7 +204,7 @@ def fetch_keycode_from_user(prompt='KeyCode'):
 
 # CHECKERS
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def check_preconditions(**conf):
     errors = []
     file_paths = ['image_file']
@@ -213,7 +213,7 @@ def check_preconditions(**conf):
         if not conf.get(fl):
             errors.append('Attribute (%s) not set' % fl)
     if conf.get('running_mode', '').lower() in ('encrypt') \
-            and conf.get('data_source') != 'terminal':
+            and conf.get('data_source') == 'file':
         if not os.path.exists(conf.get('cleartext_file')):
             errors.append(
                 'Cleartext file (%s) not found' % conf.get('cleartext_file')
@@ -238,6 +238,11 @@ def check_preconditions(**conf):
     return False if errors else True
 
 # GENERAL
+
+def reset_action_result():
+    global action_result
+    action_result = {'input': [], 'output': [], 'msg': '', 'exit': 0, 'errors': []}
+    return action_result
 
 def batch_dir2list(directory):
     image_paths, image_types = [], ['*.jpg', '*.jpeg', '*.png']
@@ -366,7 +371,7 @@ def clean_exif(**context) -> str:
     })
     return out_img_path if not failures else None
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def write_exif(**context) -> str:
     global action_result
     failures, tag_id = 0, int(context.get('exif_tag', piexif.ExifIFD.UserComment))
@@ -383,16 +388,9 @@ def write_exif(**context) -> str:
             exif_dict = piexif.load(image.info["exif"])
             # Set the specified tag ID with the provided value
             exif_dict['Exif'][tag_id] = context['exif_data'].encode('utf-8')
-            # Convert the updated EXIF data back to bytes
-#           exif_bytes = piexif.dump(exif_dict)
-#           # Save the image with the updated EXIF data
-#           image.save(out_img_path, exif=exif_bytes)
         else:
             exif_dict = {'Exif': {tag_id: context['exif_data'].encode('utf-8')}}
-#           failures += 1
-#           action_result['errors'].append(
-#               f"Image {context['image_file']} does not have EXIF data."
-#           )
+            action_result['msg'] = f"Image {context['image_file']} does not have EXIF data."
         exif_bytes = piexif.dump(exif_dict)
         # Save the image with the updated EXIF data
         image.save(out_img_path, exif=exif_bytes)
@@ -479,7 +477,7 @@ def dump_exif(**context) -> dict:
     })
     return exif_data if not failures else None
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def encrypt(*data: List[str], **context) -> str:
     global action_result
     failures = 0
@@ -516,7 +514,7 @@ def encrypt(*data: List[str], **context) -> str:
     })
     return out_img_path if not failures else None
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def decrypt(**context) -> str:
     global action_result
     failures = 0
@@ -729,7 +727,7 @@ def report_action_result(result, **context):
 
 # CLEANERS
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def cleanup(full=False, **context):
     global CONFIG
     global action_result
@@ -757,7 +755,7 @@ def cleanup(full=False, **context):
 
 # SETUP
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def setup(**context):
     global action_result
     file_paths = []
@@ -783,10 +781,6 @@ def setup(**context):
                 + ','.join(action_result['errors']),
             'exit': 11,
         })
-
-    # TODO - Remove
-    print('[ DEBUG ]: action_result -', action_result)
-
     return True if not action_result['errors'] else False
 
 # INIT
@@ -795,7 +789,7 @@ def setup(**context):
 def init_terminal_running_mode(**conf):
     global action_result
     while True:
-        action_result['errors'] = []
+        reset_action_result()
         if os.path.exists(conf['tmp_file']):
             os.remove(conf['tmp_file'])
         action = fetch_running_mode_from_user()
@@ -932,7 +926,7 @@ def init_file_running_mode(**conf):
         })
     return action_result['exit']
 
-@pysnooper.snoop()
+#@pysnooper.snoop()
 def init():
     global CONFIG
     global action_result
